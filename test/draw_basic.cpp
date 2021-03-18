@@ -22,9 +22,9 @@ class DrawBasic: public App {
         spotlight.SetAmbient(255, 255, 255);
         spotlight.SetDiffuse(255, 255, 255);
         spotlight.SetSpecular(255, 255, 255);
-        spotlight.SetPosition(0, 0, 1);
-        spotlight.SetDirection(0, 0, -1);
-        spotlight.SetParameter(50, 40);
+        spotlight.SetPosition(0, 4, 0);
+        spotlight.SetDirection(0, -1, 0);
+        spotlight.SetParameter(30, 20);
     }
 
     virtual ~DrawBasic() {
@@ -40,6 +40,7 @@ class DrawBasic: public App {
     void step() override {
         drawColorCube();
         drawTextureCube();
+        drawPlane();
     }
 
     void drawColorCube() {
@@ -59,7 +60,7 @@ class DrawBasic: public App {
         cube.rotation.z += 4;
 
 
-        render_->DrawCube(cube, material, dirlight, dotlight, spotlight);
+        render_->DrawCube(cube, material, dirlight, {&dotlight}, {&spotlight});
     }
 
     void drawTextureCube() {
@@ -78,7 +79,23 @@ class DrawBasic: public App {
         cube.rotation.x += 2;
         cube.rotation.z += 4;
 
-        render_->DrawCube(cube, material, dirlight, dotlight, spotlight);
+        render_->DrawCube(cube, material, dirlight, {&dotlight}, {&spotlight});
+    }
+
+    void drawPlane() {
+        static tinyrenderer3d::Plane plane = {
+            {0, -1, 0},
+            {10, 10},
+            {0, 0, 0}
+        };
+        static tinyrenderer3d::Material material;
+        material.ambient = {0, 0, 0, 255};
+        // material.diffuse = {200, 200, 0, 255};
+        material.textures.push_back(texture_);
+        material.specular = {200, 200, 0, 255};
+        material.shininess = 32;
+
+        render_->DrawPlane(plane, material, dirlight, {&dotlight}, {&spotlight});
     }
 
 

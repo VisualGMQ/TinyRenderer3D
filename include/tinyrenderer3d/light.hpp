@@ -6,6 +6,10 @@
 
 namespace tinyrenderer3d {
 
+// NOTE: when you change these value, don't forget to change them in shaders(if you changed shaders, modify these too)
+constexpr int DotLightMaxNum = 15;
+constexpr int SpotLightMaxNum = 15;
+
 class ILight {
  public:
     virtual ~ILight() = default;
@@ -31,7 +35,7 @@ class ILight {
         specular_.b = b;
     }
 
-    virtual void Apply(Program* program) const = 0;
+    virtual void Apply(Program* program, int idx) const = 0;
 
  private:
     Color ambient_ = {0, 0, 0, 255};
@@ -50,10 +54,10 @@ class DirectionLight: public ILight {
         direction_.z = z;
     }
 
-    void Apply(Program* program) const override;
+    void Apply(Program* program, int idx) const override;
 
  private:
-    Vec3<float> direction_ = {-1, -1, -1};
+    Vec3<float> direction_ = {0, 0, 0};
 };
 
 class DotLight: public ILight {
@@ -75,10 +79,10 @@ class DotLight: public ILight {
     }
     Vec3<float> GetPosition() const { return position_; }
 
-    void Apply(Program* program) const override;
+    void Apply(Program* program, int idx) const override;
 
  private:
-    Vec3<float> position_;
+    Vec3<float> position_ = {0, 0, 0};
     Parameter parameter_;
 };
 
@@ -94,14 +98,14 @@ class SpotLight: public ILight {
     float GetOuterCutOff() const { return outer_cutoff_; }
     float GetInnerCutOff() const { return inner_cutoff_; }
 
-    void Apply(Program* program) const override;
+    void Apply(Program* program, int idx) const override;
 
  private:
-    float outer_cutoff_;
-    float inner_cutoff_;
+    float outer_cutoff_ = 0;
+    float inner_cutoff_ = 0;
 
-    Vec3<float> direction_;
-    Vec3<float> position_;
+    Vec3<float> direction_ = {0, 0, 0};
+    Vec3<float> position_ = {0, 0, 0};
 };
 
 }

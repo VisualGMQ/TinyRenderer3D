@@ -49,6 +49,11 @@ void Program::Uniform1i(const string& name, int value) {
     GLCall(glUniform1i(loc, value));
 }
 
+void Program::Uniform1ui(const string& name, uint value) {
+    GLuint loc = findUniformLocation(name);
+    GLCall(glUniform1ui(loc, value));
+}
+
 void Program::Uniform1f(const string& name, float value) {
     GLuint loc = findUniformLocation(name);
     GLCall(glUniform1f(loc, value));

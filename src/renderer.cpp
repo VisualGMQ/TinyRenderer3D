@@ -95,8 +95,8 @@ void Renderer::SetPointSize(uint32_t size) {
     GLCall(glPointSize(size));
 }
 
-void Renderer::DrawCube(const Cube& cube, const Material& material, const DirectionLight& dirlight, const DotLight& dotlight, const SpotLight& spotlight) {
-    static float data[] = {
+void Renderer::DrawCube(const Cube& cube, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
+    static const float data[] = {
         // position           texcoord     normal
         // Back face
         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0, 0, -1,    // Bottom-left
@@ -155,37 +155,95 @@ void Renderer::DrawCube(const Cube& cube, const Material& material, const Direct
     if (material.textures.empty()) {   // use pure color program
         tellVertexAttribPoint(0, 3, GL_FLOAT, false, 8*sizeof(float), 0);
         tellVertexAttribPoint(1, 3, GL_FLOAT, false, 8*sizeof(float), (void*)(5*sizeof(float)));
-        program = UsePureColorProgram();
-        program->UniformVec3f("material.diffuse", ConvertColor4To3<float>(ConvertColor255To01<float>(material.diffuse)));
+        applyPureColorProgram(project_, model, camera_->GetMatrix(), material, dirlight, dotlights, spotlights);
     } else {    // use texture program
         tellVertexAttribPoint(0, 3, GL_FLOAT, false, 8*sizeof(float), 0);
         tellVertexAttribPoint(1, 2, GL_FLOAT, false, 8*sizeof(float), (void*)(3*sizeof(float)));
         tellVertexAttribPoint(2, 3, GL_FLOAT, false, 8*sizeof(float), (void*)(5*sizeof(float)));
-
-        program = UseTextureProgram();
-        GLCall(glBindTexture(GL_TEXTURE_2D, material.textures.at(0)->tex_));
-        GLCall(glBindFramebuffer(GL_FRAMEBUFFER, material.textures.at(0)->fbo_));
-        GLCall(glActiveTexture(GL_TEXTURE0));
-        program->Uniform1i("material.diffuse", 0);
+        applyTextureProgram(project_, model, camera_->GetMatrix(), material, dirlight, dotlights, spotlights);
     }
-    program->UniformMat4f("project", project_);
-    program->UniformMat4f("model", model);
-    program->UniformMat4f("view", camera_->GetMatrix());
-
-    auto color = ConvertColor4To3<float>(ConvertColor255To01<float>(material.ambient));
-    program->UniformVec3f("material.ambient", color);
-    program->UniformVec3f("material.specular", ConvertColor4To3<float>(ConvertColor255To01<float>(material.specular)));
-    program->Uniform1f("material.shininess", material.shininess);
-
-    dirlight.Apply(program);
-    dotlight.Apply(program);
-    spotlight.Apply(program);
-
-    program->UniformVec3f("viewPos", camera_->GetPosition());
-
     GLCall(glDrawArrays(GL_TRIANGLES, 0, 36));
 
     unbindBuffers();
+}
+
+void Renderer::DrawPlane(const Plane& plane, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
+    const static float data[] = {
+        -0.5, 0,  0.5, 0, 0, 0, 1, 0,
+         0.5, 0,  0.5, 1, 0, 0, 1, 0,
+         0.5, 0, -0.5, 1, 1, 0, 1, 0,
+
+        -0.5, 0,  0.5, 0, 0, 0, 1, 0,
+         0.5, 0, -0.5, 1, 1, 0, 1, 0,
+        -0.5, 0, -0.5, 0, 1, 0, 1, 0
+    };
+
+    Mat4<float> model = Mat4<float>(1.0f);
+    model = glm::translate(model, plane.center);
+    model = model*GetRotateMatByQuat(plane.rotation);
+    model = glm::scale(model, Vec3<float>(plane.size.w, 0, plane.size.h));
+
+    bindBuffers();
+
+    bufferData(GL_ARRAY_BUFFER, data, sizeof(data), GL_STATIC_DRAW);
+
+    Program* program = nullptr;
+    if (material.textures.empty()) {   // use pure color program
+        tellVertexAttribPoint(0, 3, GL_FLOAT, false, 8*sizeof(float), 0);
+        tellVertexAttribPoint(1, 3, GL_FLOAT, false, 8*sizeof(float), (void*)(5*sizeof(float)));
+        applyPureColorProgram(project_, model, camera_->GetMatrix(), material, dirlight, dotlights, spotlights);
+    } else {    // use texture program
+        tellVertexAttribPoint(0, 3, GL_FLOAT, false, 8*sizeof(float), 0);
+        tellVertexAttribPoint(1, 2, GL_FLOAT, false, 8*sizeof(float), (void*)(3*sizeof(float)));
+        tellVertexAttribPoint(2, 3, GL_FLOAT, false, 8*sizeof(float), (void*)(5*sizeof(float)));
+        applyTextureProgram(project_, model, camera_->GetMatrix(), material, dirlight, dotlights, spotlights);
+    }
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+
+    unbindBuffers();
+}
+
+void Renderer::applyPureColorProgram(const Mat4<float>& project, const Mat4<float>& model, const Mat4<float>& view, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
+    pure_color_program_= UsePureColorProgram();
+    pure_color_program_->UniformVec3f("material.diffuse", ConvertColor4To3<float>(ConvertColor255To01<float>(material.diffuse)));
+    applyMatrices(pure_color_program_, project, model, view);
+    applyLights(pure_color_program_, material, dirlight, dotlights, spotlights);
+}
+
+void Renderer::applyTextureProgram(const Mat4<float>& project, const Mat4<float>& model, const Mat4<float>& view, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
+    texture_program_ = UseTextureProgram();
+    GLCall(glBindTexture(GL_TEXTURE_2D, material.textures.at(0)->tex_));
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, material.textures.at(0)->fbo_));
+    GLCall(glActiveTexture(GL_TEXTURE0));
+    texture_program_->Uniform1i("material.diffuse", 0);
+    applyMatrices(texture_program_, project, model, view);
+    applyLights(texture_program_, material, dirlight, dotlights, spotlights);
+}
+
+void Renderer::applyMatrices(Program* program, const Mat4<float>& project, const Mat4<float>& model, const Mat4<float>& view) {
+    program->UniformMat4f("project", project_);
+    program->UniformMat4f("model", model);
+    program->UniformMat4f("view", camera_->GetMatrix());
+}
+
+void Renderer::applyLights(Program* program, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
+    auto color = ConvertColor4To3<float>(ConvertColor255To01<float>(material.ambient));
+    pure_color_program_->UniformVec3f("material.ambient", color);
+    pure_color_program_->UniformVec3f("material.specular", ConvertColor4To3<float>(ConvertColor255To01<float>(material.specular)));
+    pure_color_program_->Uniform1f("material.shininess", material.shininess);
+
+    pure_color_program_->Uniform1i("lightnum.dotlight", dotlights.size());
+    pure_color_program_->Uniform1i("lightnum.spotlight", spotlights.size());
+
+    dirlight.Apply(pure_color_program_, 0);
+    for (int i = 0; i < dotlights.size(); i++) {
+        dotlights.at(i)->Apply(pure_color_program_, i);
+    }
+    for (int i = 0; i < spotlights.size(); i++) {
+        spotlights.at(i)->Apply(pure_color_program_, i);
+    }
+
+    pure_color_program_->UniformVec3f("viewPos", camera_->GetPosition());
 }
 
 // void Renderer::DrawLine(int x1, int y1, int x2, int y2) {
@@ -459,6 +517,13 @@ void Renderer::SetTarget(Texture* texture) {
         GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
         SetViewport(0, 0, window_size_.w, window_size_.h);
     }
+}
+
+void Renderer::EnablePolygonMode() {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+}
+void Renderer::DisablePolygonMode() {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 Renderer::~Renderer() {

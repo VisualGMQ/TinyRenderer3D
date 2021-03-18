@@ -117,6 +117,12 @@ struct Cuboid {
     Rotation3d<float> rotation = {0, 0, 0};
 };
 
+struct Plane {
+    Vec3<float> center = {0, 0, 0};
+    Size2d<float> size = {1, 1};
+    Rotation3d<float> rotation = {0, 0, 0};
+};
+
 template <typename T>
 struct EularAngle {
     T pitch = 0;

@@ -1,5 +1,8 @@
 #version 330 core
 
+#define DOT_LIGHT_MAX_NUM 15
+#define SPOT_LIGHT_MAX_NUM 15
+
 out vec4 outColor;
 in vec3 Normal;
 in vec3 fragPos;
@@ -44,10 +47,17 @@ struct SpotLight {
     }angle;
 };
 
+struct LightNum {
+    int dotlight;
+    int spotlight;
+};
+
 uniform Material material;
+
 uniform DirectionLight directionLight;
-uniform DotLight dotLight;
-uniform SpotLight spotLight;
+uniform DotLight dotLights[DOT_LIGHT_MAX_NUM];
+uniform SpotLight spotLights[SPOT_LIGHT_MAX_NUM];
+uniform LightNum lightnum;
 
 uniform vec3 viewPos;
 
@@ -108,7 +118,11 @@ vec3 CalcSpotLight(Material material, SpotLight light) {
 
 void main() {
     vec3 color = CalcDirectionLight(material);
-    color += CalcDotLight(material, dotLight);
-    color += CalcSpotLight(material, spotLight);
+    for (int i = 0; i < lightnum.dotlight && i <  DOT_LIGHT_MAX_NUM; i++) {
+        color += CalcDotLight(material, dotLights[i]);
+    }
+    for (int i = 0; i < lightnum.spotlight && i <  SPOT_LIGHT_MAX_NUM; i++) {
+        color += CalcSpotLight(material, spotLights[i]);
+    }
     outColor = vec4(color, 1.0);
 }

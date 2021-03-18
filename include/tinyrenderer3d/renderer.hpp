@@ -69,7 +69,8 @@ class Renderer final {
     }
     
     // some draw function
-    void DrawCube(const Cube& cube, const Material& material, const DirectionLight& dirlight, const DotLight& dotlight, const SpotLight& spotlight);
+    void DrawCube(const Cube& cube, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights);
+    void DrawPlane(const Plane& plane, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights);
     // void DrawLine(int x1, int y1, int x2, int y2);
     // void DrawLine(const Point& p1, const Point& p2);
     // void DrawLine(const ColorfulPoint& p1, const ColorfulPoint& p2);
@@ -96,6 +97,8 @@ class Renderer final {
     // some other functions
     void Clear();
     void SetTarget(Texture* texture);
+    void EnablePolygonMode();
+    void DisablePolygonMode();
 
  private:
     GLuint vbo_ = 0;
@@ -144,6 +147,11 @@ class Renderer final {
         glVertexAttribPointer(index, size, type, normalized, stride, offset);
         glEnableVertexAttribArray(index);
     }
+
+    void applyPureColorProgram(const Mat4<float>& project, const Mat4<float>& model, const Mat4<float>& view,const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights);
+    void applyTextureProgram(const Mat4<float>& project, const Mat4<float>& model, const Mat4<float>& view, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights);
+    void applyLights(Program* program, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights);
+    void applyMatrices(Program* program, const Mat4<float>& project, const Mat4<float>& model, const Mat4<float>& view);
 
     void destroy();
 };

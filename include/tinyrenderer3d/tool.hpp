@@ -10,6 +10,8 @@
 #define GLEW_STATIC
 #include "GL/glew.h"
 
+std::string ErrorCode2Str(GLenum error);
+
 inline void GLClearError() {
     while (glGetError() != GL_NO_ERROR);
 }
@@ -17,7 +19,7 @@ inline void GLClearError() {
 inline void GLPrintError(const char* function, int line) {
     GLenum error;
     while ((error = glGetError()) != GL_NO_ERROR) {
-        printf("[OpenGL Error](%s - %d): %d\n", function, line, error);
+        printf("[OpenGL Error](%s - %d): %s\n", function, line, ErrorCode2Str(error).c_str());
     }
 }
 

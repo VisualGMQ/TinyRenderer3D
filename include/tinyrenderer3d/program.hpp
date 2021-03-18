@@ -22,6 +22,7 @@ class Program {
     void UniformVec4f(const string& name, const Vec4<float>& value);
     void UniformVec4i(const string& name, const Vec4<int>& value);
     void Uniform1i(const string& name, int value);
+    void Uniform1ui(const string& name, uint value);
     void Uniform1f(const string& name, float value);
     void Uniform3f(const string& name, float value1, float value2, float value3);
     void Uniform4f(const string& name, float value1, float value2, float value3, float value4);
