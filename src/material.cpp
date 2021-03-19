@@ -9,8 +9,8 @@ void Material::Use(Program* program) {
         program->Uniform1i("material.diffuse", 0);
     } else {
         program->UniformVec3f("material.diffuse", ConvertColor4To3(ConvertColor255To01<float>(diffuse)));
+        program->UniformVec3f("material.ambient", ConvertColor4To3(ConvertColor255To01<float>(ambient)));
     }
-    program->UniformVec3f("material.ambient", ConvertColor4To3(ConvertColor255To01<float>(ambient)));
     program->UniformVec3f("material.specular", ConvertColor4To3<float>(ConvertColor255To01<float>(specular)));
     program->Uniform1f("material.shininess", shininess);
 }

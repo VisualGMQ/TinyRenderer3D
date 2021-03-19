@@ -125,7 +125,6 @@ void Cube::Draw(Program* program){
 
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
     GLCall(glBindVertexArray(0));
-
 }
 
 void Cuboid::Draw(Program* program) {}

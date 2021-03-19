@@ -1,0 +1,13 @@
+-std=c++17
+
+-L/usr/local/lib
+-lSDL2
+-I/usr/local/include/SDL2
+-D_THREAD_SAFE
+
+-I/usr/local/Cellar/glew/2.2.0_1/include
+-L/usr/local/Cellar/glew/2.2.0_1/lib
+-lGLEW
+ -Iinclude
+
+-I/usr/local/Cellar/glm/0.9.9.5/include

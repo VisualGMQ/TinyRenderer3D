@@ -15,15 +15,15 @@ class DrawBasic: public App {
         dirlight.SetDirection(-2, -2, -2);
         dirlight.SetAmbient(0, 0, 0);
         dirlight.SetDiffuse(0, 0, 0);
-        dirlight.SetSpecular(0, 0, 0);
+        dirlight.SetSpecular(255, 255, 255);
 
-        dotlight.SetAmbient(255, 255, 255);
+        dotlight.SetAmbient(0, 0, 0);
         dotlight.SetDiffuse(255, 255, 255);
         dotlight.SetSpecular(255, 255, 255);
         dotlight.SetPosition(2, 2, 2);
         dotlight.SetParameter(1, 0.7, 0.18);
 
-        spotlight.SetAmbient(255, 255, 255);
+        spotlight.SetAmbient(0, 0, 0);
         spotlight.SetDiffuse(255, 255, 255);
         spotlight.SetSpecular(255, 255, 255);
         spotlight.SetPosition(0, 4, 0);
@@ -82,7 +82,7 @@ class DrawBasic: public App {
         texture_cube_.l = 1;                 // length
         texture_cube_.rotation = {0, 0, 0};  // rotation
 
-        texture_cube_.material.ambient = {0, 0, 0, 255};
+        texture_cube_.material.ambient = {255, 255, 0, 255};
         texture_cube_.material.specular = {0, 200, 0, 255};
         texture_cube_.material.textures.push_back(texture_);
         texture_cube_.material.shininess = 32;

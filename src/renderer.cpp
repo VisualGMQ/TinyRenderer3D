@@ -120,14 +120,13 @@ void Renderer::applyLights(Program* program, LightSet& lights) {
     program->Uniform1i("lightnum.dotlight", lights.dotlights.size());
     program->Uniform1i("lightnum.spotlight", lights.spotlights.size());
 
-    lights.dirlight.Apply(pure_color_program_, 0);
+    lights.dirlight.Apply(program, 0);
     for (int i = 0; i < lights.dotlights.size(); i++) {
         lights.dotlights.at(i).Apply(program, i);
     }
     for (int i = 0; i < lights.spotlights.size(); i++) {
         lights.spotlights.at(i).Apply(program, i);
     }
-
 }
 
 void Renderer::SetTarget(Texture* texture) {
