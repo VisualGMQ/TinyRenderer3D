@@ -28,6 +28,9 @@ class Texture final {
 
     Texture(Renderer* render, TextureType type, int w, int h);
     ~Texture();
+    void UseAsTexture();
+    void UseAsTarget();
+    void DontUse();
     Size2d<int> GetSize() const { return size_; }
     void UpdateData(unsigned char* data, int w, int h, PixelFormat format);
 

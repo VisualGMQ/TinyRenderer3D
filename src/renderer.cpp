@@ -5,7 +5,6 @@
 namespace tinyrenderer3d {
 
 Renderer::Renderer(int window_width, int window_height) {
-    initBuffers();
     initShaders();
     initColors();
     initFeatures();
@@ -14,15 +13,8 @@ Renderer::Renderer(int window_width, int window_height) {
     stbi_set_flip_vertically_on_load(true);
 };
 
-void Renderer::initBuffers() {
-    GLCall(glGenBuffers(1, &vbo_));
-    GLCall(glGenBuffers(1, &ebo_));
-    GLCall(glGenVertexArrays(1, &vao_));
-}
-
 void Renderer::initShaders() {
     pure_color_program_ = CreateProgram("shader/pure_color_shader.vert", "shader/pure_color_shader.frag");
-    // geo_colorful_program_ = CreateProgram("shader/geo_colorful_shader.vert", "shader/geo_colorful_shader.frag");
     texture_program_ = CreateProgram("shader/tex_shader.vert", "shader/tex_shader.frag");
 }
 
@@ -95,417 +87,48 @@ void Renderer::SetPointSize(uint32_t size) {
     GLCall(glPointSize(size));
 }
 
-void Renderer::DrawCube(const Cube& cube, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
-    static const float data[] = {
-        // position           texcoord     normal
-        // Back face
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0, 0, -1,    // Bottom-left
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0, 0, -1,    // top-right
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,  0, 0, -1,    // bottom-right         
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0, 0, -1,    // top-right
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0, 0, -1,    // bottom-left
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0, 0, -1,    // top-left
-        // Front face
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0, 0, 1,     // bottom-left
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0, 0, 1,     // bottom-right
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0, 0, 1,     // top-right
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0, 0, 1,     // top-right
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,  0, 0, 1,     // top-left
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0, 0, 1,     // bottom-left
-        // Left face
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  -1, 0, 0,    // top-right
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  -1, 0, 0,    // top-left
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  -1, 0, 0,    // bottom-left
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  -1, 0, 0,    // bottom-left
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  -1, 0, 0,    // bottom-right
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  -1, 0, 0,    // top-right
-        // Right face
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  1, 0, 0,     // top-left
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  1, 0, 0,     // bottom-right
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  1, 0, 0,     // top-right         
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  1, 0, 0,     // bottom-right
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  1, 0, 0,     // top-left
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  1, 0, 0,     // bottom-left     
-        // Bottom face
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0, -1, 0,    // top-right
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,  0, -1, 0,    // top-left
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0, -1, 0,    // bottom-left
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0, -1, 0,    // bottom-left
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0, -1, 0,    // bottom-right
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0, -1, 0,    // top-right
-        // Top face
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0, 1, 0,     // top-left
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  0, 1, 0,     // bottom-right
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0, 1, 0,     // top-right     
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  0, 1, 0,     // bottom-right
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0, 1, 0,     // top-left
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,  0, 1, 0      // bottom-left
-    };
+void Renderer::AddObject(Drawable* obj) {
+    drawables_.push_back(obj);
+}
 
-    Mat4<float> model = Mat4<float>(1.0f);
-    model = glm::translate(model, cube.center);
-    model = model*GetRotateMatByQuat(cube.rotation);
-    model = glm::scale(model, Vec3<float>(cube.l));
-
-    bindBuffers();
-
-    bufferData(GL_ARRAY_BUFFER, data, sizeof(data), GL_STATIC_DRAW);
-
-    Program* program = nullptr;
-    if (material.textures.empty()) {   // use pure color program
-        tellVertexAttribPoint(0, 3, GL_FLOAT, false, 8*sizeof(float), 0);
-        tellVertexAttribPoint(1, 3, GL_FLOAT, false, 8*sizeof(float), (void*)(5*sizeof(float)));
-        applyPureColorProgram(project_, model, camera_->GetMatrix(), material, dirlight, dotlights, spotlights);
-    } else {    // use texture program
-        tellVertexAttribPoint(0, 3, GL_FLOAT, false, 8*sizeof(float), 0);
-        tellVertexAttribPoint(1, 2, GL_FLOAT, false, 8*sizeof(float), (void*)(3*sizeof(float)));
-        tellVertexAttribPoint(2, 3, GL_FLOAT, false, 8*sizeof(float), (void*)(5*sizeof(float)));
-        applyTextureProgram(project_, model, camera_->GetMatrix(), material, dirlight, dotlights, spotlights);
+void Renderer::Draw() {
+    for (Drawable* obj: drawables_) {
+        drawOneObj(obj);
     }
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, 36));
-
-    unbindBuffers();
 }
 
-void Renderer::DrawPlane(const Plane& plane, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
-    const static float data[] = {
-        -0.5, 0,  0.5, 0, 0, 0, 1, 0,
-         0.5, 0,  0.5, 1, 0, 0, 1, 0,
-         0.5, 0, -0.5, 1, 1, 0, 1, 0,
-
-        -0.5, 0,  0.5, 0, 0, 0, 1, 0,
-         0.5, 0, -0.5, 1, 1, 0, 1, 0,
-        -0.5, 0, -0.5, 0, 1, 0, 1, 0
-    };
-
-    Mat4<float> model = Mat4<float>(1.0f);
-    model = glm::translate(model, plane.center);
-    model = model*GetRotateMatByQuat(plane.rotation);
-    model = glm::scale(model, Vec3<float>(plane.size.w, 0, plane.size.h));
-
-    bindBuffers();
-
-    bufferData(GL_ARRAY_BUFFER, data, sizeof(data), GL_STATIC_DRAW);
-
+void Renderer::drawOneObj(Drawable* obj) {
     Program* program = nullptr;
-    if (material.textures.empty()) {   // use pure color program
-        tellVertexAttribPoint(0, 3, GL_FLOAT, false, 8*sizeof(float), 0);
-        tellVertexAttribPoint(1, 3, GL_FLOAT, false, 8*sizeof(float), (void*)(5*sizeof(float)));
-        applyPureColorProgram(project_, model, camera_->GetMatrix(), material, dirlight, dotlights, spotlights);
-    } else {    // use texture program
-        tellVertexAttribPoint(0, 3, GL_FLOAT, false, 8*sizeof(float), 0);
-        tellVertexAttribPoint(1, 2, GL_FLOAT, false, 8*sizeof(float), (void*)(3*sizeof(float)));
-        tellVertexAttribPoint(2, 3, GL_FLOAT, false, 8*sizeof(float), (void*)(5*sizeof(float)));
-        applyTextureProgram(project_, model, camera_->GetMatrix(), material, dirlight, dotlights, spotlights);
+    if (obj->HasTexture()) {
+        program = UseTextureProgram();
+    } else {
+        program = UsePureColorProgram();
     }
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+    applyMatrices(program, project_, camera_->GetMatrix());
+    applyLights(program, lights_);
 
-    unbindBuffers();
+    obj->Draw(program);
 }
 
-void Renderer::applyPureColorProgram(const Mat4<float>& project, const Mat4<float>& model, const Mat4<float>& view, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
-    pure_color_program_= UsePureColorProgram();
-    pure_color_program_->UniformVec3f("material.diffuse", ConvertColor4To3<float>(ConvertColor255To01<float>(material.diffuse)));
-    applyMatrices(pure_color_program_, project, model, view);
-    applyLights(pure_color_program_, material, dirlight, dotlights, spotlights);
-}
-
-void Renderer::applyTextureProgram(const Mat4<float>& project, const Mat4<float>& model, const Mat4<float>& view, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
-    texture_program_ = UseTextureProgram();
-    GLCall(glBindTexture(GL_TEXTURE_2D, material.textures.at(0)->tex_));
-    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, material.textures.at(0)->fbo_));
-    GLCall(glActiveTexture(GL_TEXTURE0));
-    texture_program_->Uniform1i("material.diffuse", 0);
-    applyMatrices(texture_program_, project, model, view);
-    applyLights(texture_program_, material, dirlight, dotlights, spotlights);
-}
-
-void Renderer::applyMatrices(Program* program, const Mat4<float>& project, const Mat4<float>& model, const Mat4<float>& view) {
+void Renderer::applyMatrices(Program* program, const Mat4<float>& project, const Mat4<float>& view) {
     program->UniformMat4f("project", project_);
-    program->UniformMat4f("model", model);
     program->UniformMat4f("view", camera_->GetMatrix());
+    program->UniformVec3f("viewPos", camera_->GetPosition());
 }
 
-void Renderer::applyLights(Program* program, const Material& material, const DirectionLight& dirlight, const vector<DotLight*>& dotlights, const vector<SpotLight*>& spotlights) {
-    auto color = ConvertColor4To3<float>(ConvertColor255To01<float>(material.ambient));
-    pure_color_program_->UniformVec3f("material.ambient", color);
-    pure_color_program_->UniformVec3f("material.specular", ConvertColor4To3<float>(ConvertColor255To01<float>(material.specular)));
-    pure_color_program_->Uniform1f("material.shininess", material.shininess);
+void Renderer::applyLights(Program* program, LightSet& lights) {
+    program->Uniform1i("lightnum.dotlight", lights.dotlights.size());
+    program->Uniform1i("lightnum.spotlight", lights.spotlights.size());
 
-    pure_color_program_->Uniform1i("lightnum.dotlight", dotlights.size());
-    pure_color_program_->Uniform1i("lightnum.spotlight", spotlights.size());
-
-    dirlight.Apply(pure_color_program_, 0);
-    for (int i = 0; i < dotlights.size(); i++) {
-        dotlights.at(i)->Apply(pure_color_program_, i);
+    lights.dirlight.Apply(pure_color_program_, 0);
+    for (int i = 0; i < lights.dotlights.size(); i++) {
+        lights.dotlights.at(i).Apply(program, i);
     }
-    for (int i = 0; i < spotlights.size(); i++) {
-        spotlights.at(i)->Apply(pure_color_program_, i);
+    for (int i = 0; i < lights.spotlights.size(); i++) {
+        lights.spotlights.at(i).Apply(program, i);
     }
 
-    pure_color_program_->UniformVec3f("viewPos", camera_->GetPosition());
 }
-
-// void Renderer::DrawLine(int x1, int y1, int x2, int y2) {
-//     Point data[2];
-//     data[0].x = x1;
-//     data[0].y = y1;
-//     data[1].x = x2;
-//     data[1].y = y2;
-// 
-//     DrawLines(data, 2);
-// }
-// 
-// void Renderer::DrawLine(const Point& p1, const Point& p2) {
-//     DrawLine(p1.x, p1.y, p2.x, p2.y);
-// }
-// 
-// void Renderer::DrawLines(const vector<Point>& points) {
-//     DrawLines(points.data(), points.size());
-// }
-// 
-// void Renderer::DrawLines(const Point* points, int num) {
-//     useGeomentryPureColorProgram();
-//     geo_pure_color_program_->UniformMat4f("proj", current_proj_);
-//     geo_pure_color_program_->UniformVec4i("fragColor256", draw_color_);
-// 
-//     bindBuffers(0);
-//     glBufferData(GL_ARRAY_BUFFER, num*sizeof(Point), points, GL_STATIC_DRAW);
-//     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)0);
-//     glEnableVertexAttribArray(0);
-//     
-//     glDrawArrays(GL_LINE_STRIP, 0, num);
-// }
-// 
-// void Renderer::DrawLine(const ColorfulPoint& p1, const ColorfulPoint& p2) {
-//     ColorfulPoint points[] = {p1, p2};
-//     DrawLines(points, 2);
-// }
-// 
-// void Renderer::DrawLines(const vector<ColorfulPoint>& points) {
-//     DrawLines(points.data(), points.size());
-// }
-// 
-// void Renderer::DrawLines(const ColorfulPoint* points, int num) {
-//     if (num < 2)
-//         return;
-//     useGeomentryColorfulProgram();
-//     geo_colorful_program_->UniformMat4f("proj", current_proj_);
-// 
-//     bindBuffers(0);
-//     glBufferData(GL_ARRAY_BUFFER, num*sizeof(ColorfulPoint), points, GL_STATIC_DRAW);
-//     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(ColorfulPoint), (void*)offsetof(ColorfulPoint, point));
-//     glEnableVertexAttribArray(0);
-//     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(ColorfulPoint), (void*)offsetof(ColorfulPoint, color));
-//     glEnableVertexAttribArray(1);
-//     
-//     glDrawArrays(GL_LINE_STRIP, 0, num);
-// }
-// 
-// void Renderer::DrawRect(int x, int y, int w, int h) {
-//     Point points[4];
-//     points[0].x = x;
-//     points[0].y = y;
-//     points[1].x = x+w;
-//     points[1].y = y;
-//     points[2].x = x+w;
-//     points[2].y = y+h;
-//     points[3].x = x;
-//     points[3].y = y+h;
-// 
-//     DrawPolygon(points, 4);
-// }
-// 
-// void Renderer::DrawRect(const Rect& rect) {
-//     DrawRect(rect.x, rect.y, rect.w, rect.h);
-// }
-// 
-// void Renderer::DrawPolygon(vector<Point>& points) {
-//     DrawPolygon(points.data(), points.size());
-// }
-// 
-// void Renderer::DrawPolygon(Point* points, int num) {
-//     if (num <= 2)
-//         return;
-// 
-//     useGeomentryPureColorProgram();
-// 
-//     bindBuffers(0);
-//     geo_pure_color_program_->UniformMat4f("proj", current_proj_);
-//     glBufferData(GL_ARRAY_BUFFER, sizeof(Point)*num, points, GL_STATIC_DRAW);
-//     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)0);
-//     glEnableVertexAttribArray(0);
-// 
-//     // fill polygon
-//     if (fill_color_.a != 0) {
-//         geo_pure_color_program_->UniformVec4i("fragColor256", fill_color_);
-//         glDrawArrays(GL_TRIANGLE_FAN, 0, num);
-//     }
-//     
-//     // draw outline
-//     geo_pure_color_program_->UniformVec4i("fragColor256", draw_color_);
-//     glDrawArrays(GL_LINE_LOOP, 0, num);
-// }
-// 
-// 
-// void Renderer::DrawPolygon(vector<ColorfulPoint>& points) {
-//     DrawPolygon(points.data(), points.size());
-// }
-// 
-// void Renderer::DrawPolygon(ColorfulPoint* points, int num) {
-//     if (num <= 2)
-//         return;
-//     useGeomentryColorfulProgram();
-//     geo_colorful_program_->UniformMat4f("proj", current_proj_);
-// 
-//     bindBuffers(0);
-//     glBufferData(GL_ARRAY_BUFFER, sizeof(ColorfulPoint)*num, points, GL_STATIC_DRAW);
-//     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(ColorfulPoint), (void*)offsetof(ColorfulPoint, point));
-//     glEnableVertexAttribArray(0);
-//     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(ColorfulPoint), (void*)offsetof(ColorfulPoint, color));
-//     glEnableVertexAttribArray(1);
-// 
-//     glDrawArrays(GL_TRIANGLE_FAN, 0, num);
-// }
-// 
-// void Renderer::DrawCircle(int x, int y, int radius) {
-//     float delta_radian = 2*glm::pi<float>()/100;
-//     vector<Point> points;
-// 
-//     float radian = 0;
-//     while (radian <= 2*glm::pi<float>()) {
-//         Point p;
-//         p.x = x+cos(radian)*radius;
-//         p.y = y+sin(radian)*radius;
-//         points.push_back(p);
-//         radian += delta_radian;
-//     }
-// 
-//     useGeomentryPureColorProgram();
-// 
-//     geo_pure_color_program_->UniformMat4f("proj", current_proj_);
-// 
-//     bindBuffers(0);
-//     glBufferData(GL_ARRAY_BUFFER, sizeof(Point)*points.size(), points.data(), GL_STATIC_DRAW);
-//     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)0);
-//     glEnableVertexAttribArray(0);
-// 
-//     // fill circle
-//     if (fill_color_.a != 0) {
-//         geo_pure_color_program_->UniformVec4i("fragColor256", fill_color_);
-//         glDrawArrays(GL_TRIANGLE_FAN, 0, points.size());
-//     }
-//     
-//     // draw outline
-//     geo_pure_color_program_->UniformVec4i("fragColor256", draw_color_);
-//     glDrawArrays(GL_LINE_LOOP, 0, points.size());
-// }
-// 
-// // FIXME can't work
-// void Renderer::DrawPoint(int x, int y) {
-//     float data[2];
-//     data[0] = x;
-//     data[1] = y;
-// 
-//     useGeomentryPureColorProgram();
-//     bindBuffers(0);
-//     glBufferData(GL_ARRAY_BUFFER, 2*sizeof(float), data, GL_STATIC_DRAW);
-//     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)0);
-//     glEnableVertexAttribArray(0);
-// 
-//     geo_pure_color_program_->UniformMat4f("proj", current_proj_);
-//     geo_pure_color_program_->UniformVec4i("fragColor256", draw_color_);
-// 
-//     glDrawArrays(GL_POINTS, 0, 1);
-// }
-// 
-// void Renderer::DrawTexture(Texture* texture, const Rect* src_rect, const Rect* dst_rect, const Color* color, float degree, FlipType flip) {
-//     if (!texture)
-//         return;
-//     useTextureProgram();
-//     float data[] = {
-//         0, 0, 0, 0,
-//         0, 1, 0, 1,
-//         1, 0, 1, 0,
-// 
-//         0, 1, 0, 1,
-//         1, 0, 1, 0,
-//         1, 1, 1, 1
-//     };
-// 
-//     int w = texture->GetSize().w,
-//         h = texture->GetSize().h;
-//     if (src_rect) {
-//         Point right_top = {
-//             (src_rect->x+src_rect->w)/static_cast<double>(w),
-//             (h-src_rect->y)/static_cast<double>(h)
-//         },
-//         left_bottom = {
-//             (src_rect->x)/static_cast<double>(w),
-//             (h-src_rect->y-src_rect->h)/static_cast<double>(h)
-//         };
-// 
-//         data[2] = left_bottom.x;
-//         data[3] = left_bottom.y;
-// 
-//         data[6] = left_bottom.x;
-//         data[7] = right_top.y;
-// 
-//         data[10] = right_top.x;
-//         data[11] = left_bottom.y;
-// 
-//         data[14] = left_bottom.x;
-//         data[15] = right_top.y;
-// 
-//         data[18] = right_top.x;
-//         data[19] = left_bottom.y;
-// 
-//         data[22] = right_top.x;
-//         data[23] = right_top.y;
-//     }
-// 
-//     bindBuffers(texture->tex_);
-//     glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
-//     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4*sizeof(float), 0);
-//     glEnableVertexAttribArray(0);
-// 
-//     glm::mat4 model = glm::mat4(1.0f);
-//     Rect rect;
-//     if (dst_rect) {
-//         rect = *dst_rect;
-//     } else {
-//         rect.x = 0;
-//         rect.y = 0;
-//         rect.w = drawable_size_.w;
-//         rect.h = drawable_size_.h;
-//     }
-//     model = glm::translate(model, glm::vec3(rect.w/2.0+rect.x, rect.h/2+rect.y, 0));
-//     model = glm::rotate(model, glm::radians(degree), glm::vec3(0, 0, 1));
-//     float scale_x = rect.w,
-//           scale_y = rect.h;
-//     if (flip & FLIP_HORIZONTAL) {
-//         scale_x = -scale_x;
-//     }
-//     if (flip & FLIP_VERTICAL) {
-//         scale_y = -scale_y;
-//     }
-//     model = glm::scale(model, glm::vec3(scale_x, scale_y, 1));
-//     model = glm::translate(model, glm::vec3(-0.5, -0.5, 0));
-// 
-//     texture_program_->UniformMat4f("model", model);
-//     texture_program_->UniformMat4f("proj", current_proj_);
-//     texture_program_->Uniform1i("Texture", 0);
-//     if (color) {
-//         texture_program_->Uniform3f("TextureColor256", color->r, color->g, color->b);
-//     } else {
-//         texture_program_->Uniform3f("TextureColor256", 255, 255, 255);
-//     }
-// 
-//     if (texture->tex_) {
-//         glDrawArrays(GL_TRIANGLES, 0, 6);
-//         glBindTexture(GL_TEXTURE_2D, 0);
-//     }
-// }
 
 void Renderer::SetTarget(Texture* texture) {
     if (texture) {
@@ -532,17 +155,8 @@ Renderer::~Renderer() {
 
 void Renderer::destroy() {
     delete pure_color_program_;
-    // delete geo_colorful_program_;
     delete texture_program_;
-
     delete camera_;
-
-    GLCall(glDeleteBuffers(1, &vbo_));
-    vbo_ = 0;
-    GLCall(glDeleteBuffers(1, &ebo_));
-    ebo_ = 0;
-    GLCall(glDeleteVertexArrays(1, &vao_));
-    vao_ = 0;
 }
 
 Renderer* CreateRenderer(int window_width, int window_height) {

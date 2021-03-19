@@ -27,6 +27,20 @@ Texture::Texture(Renderer* render, TextureType type, int w, int h) {
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
+void Texture::UseAsTexture() {
+    GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
+}
+
+void Texture::UseAsTarget() {
+    GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo_));
+}
+
+void Texture::DontUse() {
+    GLCall(glBindTexture(GL_TEXTURE_2D, 0));
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+}
+
 void Texture::UpdateData(unsigned char* data, int w, int h, PixelFormat format) {
     GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
     if (format == PIXEL_FORMAT_RGB888) {

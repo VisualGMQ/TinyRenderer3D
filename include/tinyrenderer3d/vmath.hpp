@@ -105,24 +105,6 @@ struct Rect {
     Rotation2d<T> rotation = {0};
 };
 
-struct Cube {
-    Vec3<float> center = {0, 0, 0};
-    float l = 1;
-    Rotation3d<float> rotation = {0, 0, 0};
-};
-
-struct Cuboid {
-    Vec3<float> center = {0, 0, 0};
-    Size3d<float> size = {1, 1, 1};
-    Rotation3d<float> rotation = {0, 0, 0};
-};
-
-struct Plane {
-    Vec3<float> center = {0, 0, 0};
-    Size2d<float> size = {1, 1};
-    Rotation3d<float> rotation = {0, 0, 0};
-};
-
 template <typename T>
 struct EularAngle {
     T pitch = 0;

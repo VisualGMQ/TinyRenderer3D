@@ -1,10 +1,14 @@
 #ifndef TINYRENDERER3D_LIGHT_HPP
 #define TINYRENDERER3D_LIGHT_HPP
 
+#include <vector>
+
 #include "vmath.hpp"
 #include "program.hpp"
 
 namespace tinyrenderer3d {
+
+using std::vector;
 
 // NOTE: when you change these value, don't forget to change them in shaders(if you changed shaders, modify these too)
 constexpr int DotLightMaxNum = 15;
@@ -106,6 +110,12 @@ class SpotLight: public ILight {
 
     Vec3<float> direction_ = {0, 0, 0};
     Vec3<float> position_ = {0, 0, 0};
+};
+
+struct LightSet {
+    DirectionLight dirlight;
+    vector<DotLight> dotlights;
+    vector<SpotLight> spotlights;
 };
 
 }

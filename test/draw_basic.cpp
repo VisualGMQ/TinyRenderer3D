@@ -5,6 +5,10 @@ class DrawBasic: public App {
  public:
     DrawBasic() {
         texture_ = tinyrenderer3d::LoadTexture(render_, tinyrenderer3d::TEXTURE_TYPE_STATIC, "test_resources/ghost.png");
+
+        tinyrenderer3d::DirectionLight dirlight;
+        tinyrenderer3d::DotLight dotlight;
+        tinyrenderer3d::SpotLight spotlight;
         // dirlight.SetAmbient(255, 255, 255);
         // dirlight.SetDiffuse(255, 255, 255);
         // dirlight.SetSpecular(255, 255, 255);
@@ -25,6 +29,20 @@ class DrawBasic: public App {
         spotlight.SetPosition(0, 4, 0);
         spotlight.SetDirection(0, -1, 0);
         spotlight.SetParameter(30, 20);
+
+        lights_.dirlight = dirlight;
+        lights_.dotlights.push_back(dotlight);
+        lights_.spotlights.push_back(spotlight);
+
+        render_->SetLights(lights_);
+
+        initColorCube();
+        initTextureCube();
+        initPlane();
+        
+        render_->AddObject(&color_cube_);
+        render_->AddObject(&texture_cube_);
+        render_->AddObject(&plane_);
     }
 
     virtual ~DrawBasic() {
@@ -33,69 +51,53 @@ class DrawBasic: public App {
 
  private:
     tinyrenderer3d::Texture* texture_ = nullptr;
-    tinyrenderer3d::DirectionLight dirlight;
-    tinyrenderer3d::DotLight dotlight;
-    tinyrenderer3d::SpotLight spotlight;
+    tinyrenderer3d::LightSet lights_;
+    tinyrenderer3d::Cube color_cube_;
+    tinyrenderer3d::Cube texture_cube_;
+    tinyrenderer3d::Plane plane_;
 
     void step() override {
-        drawColorCube();
-        drawTextureCube();
-        drawPlane();
+        color_cube_.rotation.x += 2;
+        color_cube_.rotation.z += 4;
+
+        texture_cube_.rotation.x += 2;
+        texture_cube_.rotation.z += 4;
+
+        render_->Draw();
     }
 
-    void drawColorCube() {
-        static tinyrenderer3d::Cube cube= {
-            {-1.5, 0, 0},  // position
-            1,          // length
-            {0, 0, 0}   // rotation
-        };
-        static tinyrenderer3d::Material material;
+    void initColorCube() {
+        color_cube_.center = {-1.5, 0, 0};  // position
+        color_cube_.l = 1;                  // length
+        color_cube_.rotation = {0, 0, 0};   // rotation
 
-        material.ambient = {0, 0, 0, 255};
-        material.diffuse = {0, 200, 0, 255};
-        material.specular = {0, 200, 0, 255};
-        material.shininess = 32;
-
-        cube.rotation.x += 2;
-        cube.rotation.z += 4;
-
-
-        render_->DrawCube(cube, material, dirlight, {&dotlight}, {&spotlight});
+        color_cube_.material.ambient = {0, 0, 0, 255};
+        color_cube_.material.diffuse = {0, 200, 0, 255};
+        color_cube_.material.specular = {0, 200, 0, 255};
+        color_cube_.material.shininess = 32;
     }
 
-    void drawTextureCube() {
-        static tinyrenderer3d::Cube cube= {
-            {1.5, 0, 0},  // position
-            1,          // length
-            {0, 0, 0}   // rotation
-        };
-        static tinyrenderer3d::Material material;
+    void initTextureCube() {
+        texture_cube_.center = {1.5, 0, 0};  // position
+        texture_cube_.l = 1;                 // length
+        texture_cube_.rotation = {0, 0, 0};  // rotation
 
-        material.ambient = {0, 0, 0, 255};
-        material.specular = {0, 200, 0, 255};
-        material.textures.push_back(texture_);
-        material.shininess = 32;
-
-        cube.rotation.x += 2;
-        cube.rotation.z += 4;
-
-        render_->DrawCube(cube, material, dirlight, {&dotlight}, {&spotlight});
+        texture_cube_.material.ambient = {0, 0, 0, 255};
+        texture_cube_.material.specular = {0, 200, 0, 255};
+        texture_cube_.material.textures.push_back(texture_);
+        texture_cube_.material.shininess = 32;
     }
 
-    void drawPlane() {
-        static tinyrenderer3d::Plane plane = {
-            {0, -1, 0},
-            {10, 10},
-            {0, 0, 0}
-        };
-        static tinyrenderer3d::Material material;
-        material.ambient = {0, 0, 0, 255};
+    void initPlane() {
+        plane_.center = {0, -1, 0};
+        plane_.size = {10, 10};
+        plane_.rotation = {0, 0, 0};
+
+        plane_.material.ambient = {0, 0, 0, 255};
         // material.diffuse = {200, 200, 0, 255};
-        material.textures.push_back(texture_);
-        material.specular = {200, 200, 0, 255};
-        material.shininess = 32;
-
-        render_->DrawPlane(plane, material, dirlight, {&dotlight}, {&spotlight});
+        plane_.material.textures.push_back(texture_);
+        plane_.material.specular = {200, 200, 0, 255};
+        plane_.material.shininess = 32;
     }
 
 
