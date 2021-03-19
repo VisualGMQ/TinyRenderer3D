@@ -1,6 +1,8 @@
 #ifndef APP_HPP
 #define APP_HPP
 
+#include <map>
+
 #include "SDL_events.h"
 #include "glm/geometric.hpp"
 #include "tinyrenderer3d/tinyrenderer3d.hpp"
@@ -11,6 +13,8 @@
 
 constexpr int WindowWidth = 800;
 constexpr int WindowHeight = 600;
+
+using std::map;
 
 class App {
  public:
@@ -27,22 +31,36 @@ class App {
                 if (event_.type == SDL_QUIT)
                     Exit();
                 if (event_.type == SDL_KEYDOWN) {
-                    if (event_.key.keysym.sym == SDLK_s) {
-                        camera_->MoveByMyself({0, 0, 0.2});
-                    }
-                    if (event_.key.keysym.sym == SDLK_w) {
-                        camera_->MoveByMyself({0, 0, -0.2});
-                    }
-                    if (event_.key.keysym.sym == SDLK_a) {
-                        camera_->MoveByMyself({-0.2, 0, 0});
-                    }
-                    if (event_.key.keysym.sym == SDLK_d) {
-                        camera_->MoveByMyself({0.2, 0, 0});
-                    }
+                    keys_[event_.key.keysym.sym] = true;
+                    
+                }
+                if (event_.type == SDL_KEYUP) {
+                    keys_[event_.key.keysym.sym] = false;
+                }
+                if (event_.type == SDL_MOUSEBUTTONDOWN) {
+                    mouse_button_down_ = true;
+                }
+                if (event_.type == SDL_MOUSEBUTTONUP) {
+                    mouse_button_down_ = false;
                 }
                 if (event_.type == SDL_MOUSEMOTION) {
-                    camera_->RotateBy(event_.motion.yrel*0.3, event_.motion.xrel*0.3, 0);
+                    if (mouse_button_down_) {
+                        camera_->RotateBy(event_.motion.xrel*0.3);
+                    }
                 }
+            }
+
+            if (queryKey(SDLK_s)) {
+                camera_->MoveByMyself({0, 0, 0.2});
+            }
+            if (queryKey(SDLK_w)) {
+                camera_->MoveByMyself({0, 0, -0.2});
+            }
+            if (queryKey(SDLK_a)) {
+                camera_->MoveByMyself({-0.2, 0, 0});
+            }
+            if (queryKey(SDLK_d)) {
+                camera_->MoveByMyself({0.2, 0, 0});
             }
             step();
             SDL_GL_SwapWindow(window_);
@@ -67,6 +85,8 @@ class App {
  private:
     SDL_Event event_;
     bool should_quit_ = false;
+    map<SDL_Keycode, bool> keys_;
+    bool mouse_button_down_ = false;
 
     void initSDL() {
         SDL_Init(SDL_INIT_EVERYTHING);
@@ -89,6 +109,13 @@ class App {
 
     virtual void step() {
 
+    }
+
+    bool queryKey(SDL_Keycode key) {
+        if (keys_.find(key) != keys_.end() && keys_[key]) {
+            return true;
+        }
+        return false;
     }
 
     void createRender() {
