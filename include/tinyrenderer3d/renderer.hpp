@@ -16,9 +16,11 @@
 #include "log.hpp"
 #include "camera.hpp"
 #include "light.hpp"
-#include "object.hpp"
+#include "mesh.hpp"
 
 namespace tinyrenderer3d {
+
+class Mesh;
 
 using std::vector;
 
@@ -53,8 +55,9 @@ class Renderer final {
         return pure_color_program_;
     }
 
-    Program* UseColorfulProgram() {
-        return nullptr;
+    Program* UseShadowProgram() {
+        shadow_program_->Use();
+        return shadow_program_;
     }
 
     Program* UseTextureProgram() {
@@ -98,6 +101,7 @@ class Renderer final {
 
     Program* pure_color_program_ = nullptr;
     Program* texture_program_ = nullptr;
+    Program* shadow_program_ = nullptr;
 
     void unbindBuffers() {
         glBindBuffer(GL_ARRAY_BUFFER, 0);

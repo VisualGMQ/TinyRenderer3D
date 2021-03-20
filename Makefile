@@ -7,7 +7,7 @@ DEBUG = -g
 
 all:${TESTS}
 
-%.out:%.cpp test/app.hpp
+%.out:%.cpp test/test_framework.hpp
 	$(CXX) $< ${SRC} -o $@ -Iinclude -Itest ${SDL_DEP} ${OPENGL_DEP} ${GLEW_DEP} ${DEBUG} -std=c++17
 
 .PHONY:clean

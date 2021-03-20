@@ -2,41 +2,41 @@
 
 namespace tinyrenderer3d {
 
-Material Material::CreateColorMaterial(Color ambient, Color diffuse, Color specular, float shininess) {
-    Material material;
-    material.ambient = ambient;
-    material.diffuse = diffuse;
-    material.specular = specular;
-    material.shininess = shininess;
-    return material;
-}
-
-Material Material::CreateTextureMaterial(Texture* diffuse, Color specular, float shininess) {
-    Material material;
-    material.textures.push_back(diffuse);
-    material.specular = specular;
-    material.shininess = shininess;
-    return material;
-}
-
 void Material::Use(Program* program) {
-    if (HasTexture()) {
-        textures.at(0)->UseAsTexture();
+    if (normal_texture) {
         GLCall(glActiveTexture(GL_TEXTURE0));
-        program->Uniform1i("material.diffuse", 0);
+        normal_texture->UseAsTexture();
+        GLCall(program->Uniform1i("material.normal_texture", 0));
+        GLCall(program->Uniform1i("material.normal_texture_num", 1));
     } else {
-        program->UniformVec3f("material.diffuse", ConvertColor4To3(ConvertColor255To01<float>(diffuse)));
-        program->UniformVec3f("material.ambient", ConvertColor4To3(ConvertColor255To01<float>(ambient)));
+        GLCall(program->Uniform1i("material.normal_texture_num", 0));
     }
-    program->UniformVec3f("material.specular", ConvertColor4To3<float>(ConvertColor255To01<float>(specular)));
+    if (diffuse_texture) {
+        GLCall(glActiveTexture(GL_TEXTURE1));
+        diffuse_texture->UseAsTexture();
+        GLCall(program->Uniform1i("material.diffuse_texture", 1));
+        GLCall(program->Uniform1i("material.diffuse_texture_num", 1));
+    } else {
+        GLCall(program->Uniform1i("material.diffuse_texture_num", 0));
+    }
+    if (specular_texture) {
+        GLCall(glActiveTexture(GL_TEXTURE2));
+        specular_texture->UseAsTexture();
+        GLCall(program->Uniform1i("material.specular_texture", 2));
+        GLCall(program->Uniform1i("material.specular_texture_num", 1));
+    } else {
+        GLCall(program->Uniform1i("material.specular_texture_num", 0));
+    }
+
+    program->UniformVec3f("material.diffuse", ConvertColor4To3(ConvertColor255To01<float>(diffuse)));
+    program->UniformVec3f("material.ambient", ConvertColor4To3(ConvertColor255To01<float>(ambient)));
+    program->UniformVec3f("material.specular", ConvertColor4To3(ConvertColor255To01<float>(specular)));
     program->Uniform1f("material.shininess", shininess);
 }
 
 void Material::DontUse() {
-    if (HasTexture()) {
-        GLCall(glBindTexture(GL_TEXTURE_2D, 0));
-        GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-    }
+    GLCall(glBindTexture(GL_TEXTURE_2D, 0));
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
 }

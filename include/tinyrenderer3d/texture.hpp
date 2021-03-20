@@ -26,7 +26,7 @@ class Texture final {
  public:
     friend class Renderer;
 
-    Texture(Renderer* render, TextureType type, int w, int h);
+    Texture(TextureType type, int w, int h);
     ~Texture();
     void UseAsTexture();
     void UseAsTarget();
@@ -41,8 +41,8 @@ class Texture final {
     GLuint fbo_ = 0;
 };
 
-Texture* LoadTexture(Renderer* render, TextureType type, std::string filename);
-Texture* CreateTexture(Renderer* render, TextureType type, int w, int h);
+Texture* LoadTexture(TextureType type, std::string filename);
+Texture* CreateTexture(TextureType type, int w, int h);
 void DestroyTexture(Texture* texture);
 
 };

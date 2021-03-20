@@ -3,7 +3,7 @@
 
 namespace tinyrenderer3d {
 
-Program::Program(Shader& vertex_shader, Shader& frag_shader) {
+Program::Program(string name, Shader& vertex_shader, Shader& frag_shader):name_(name) {
     program_ = glCreateProgram(); 
     GLCall(glAttachShader(program_, vertex_shader.GetShaderBuffer()));
     GLCall(glAttachShader(program_, frag_shader.GetShaderBuffer()));
@@ -82,10 +82,10 @@ Program::~Program() {
     GLCall(glDeleteProgram(program_));
 }
 
-Program* CreateProgram(string vertex_filename, string frag_filename) {
+Program* CreateProgram(string name, string vertex_filename, string frag_filename) {
     Shader vertex_shader(ShaderType::VERTEX_SHADER, ReadShaderFile(vertex_filename)),
            frag_shader(ShaderType::FRAGMENT_SHADER, ReadShaderFile(frag_filename));
-    return new Program(vertex_shader, frag_shader);
+    return new Program(name, vertex_shader, frag_shader);
 }
 
 void DestroyProgram(Program* program) {

@@ -112,6 +112,11 @@ struct EularAngle {
     T roll = 0;
 };
 
+struct Vertex {
+    Vec3<float> position;
+    Vec2<float> texcoord;
+    Vec3<float> normal;
+};
 
 }; // NAMESPACE tinyrender3d
 

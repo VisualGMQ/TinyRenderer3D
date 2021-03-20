@@ -1,6 +1,5 @@
 #include "tinyrenderer3d/renderer.hpp"
 #include "stb_image.h"
-#include "tinyrenderer3d/light.hpp"
 
 namespace tinyrenderer3d {
 
@@ -14,8 +13,9 @@ Renderer::Renderer(int window_width, int window_height) {
 };
 
 void Renderer::initShaders() {
-    pure_color_program_ = CreateProgram("shader/pure_color_shader.vert", "shader/pure_color_shader.frag");
-    texture_program_ = CreateProgram("shader/tex_shader.vert", "shader/tex_shader.frag");
+    pure_color_program_ = CreateProgram(PureColorProgramName, "shader/pure_color_shader.vert", "shader/pure_color_shader.frag");
+    texture_program_ = CreateProgram(TextureProgramName, "shader/tex_shader.vert", "shader/tex_shader.frag");
+    shadow_program_ = CreateProgram(ShadowProgramName, "shader/shadow.vert", "shader/empty.frag");
 }
 
 void Renderer::initDrawSize(int w, int h) {
@@ -37,9 +37,9 @@ void Renderer::initColors() {
 
 void Renderer::initFeatures() {
     GLCall(glEnable(GL_BLEND));
+    GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
     GLCall(glEnable(GL_MULTISAMPLE));
-    GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     GLCall(glEnable(GL_STENCIL_TEST));
     GLCall(glEnable(GL_DEPTH_TEST));
     GLCall(glEnable(GL_CULL_FACE));
@@ -98,15 +98,9 @@ void Renderer::Draw() {
 }
 
 void Renderer::drawOneObj(Drawable* obj) {
-    Program* program = nullptr;
-    if (obj->HasTexture()) {
-        program = UseTextureProgram();
-    } else {
-        program = UsePureColorProgram();
-    }
+    Program* program = UseTextureProgram();
     applyMatrices(program, project_, camera_->GetMatrix());
     applyLights(program, lights_);
-
     obj->Draw(program);
 }
 
@@ -155,6 +149,7 @@ Renderer::~Renderer() {
 void Renderer::destroy() {
     delete pure_color_program_;
     delete texture_program_;
+    delete shadow_program_;
     delete camera_;
 }
 

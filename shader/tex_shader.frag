@@ -10,9 +10,19 @@ in vec3 Normal;
 in vec3 fragPos;
 
 struct Material {
-    sampler2D diffuse;
+    vec3 ambient;
+    vec3 diffuse;
     vec3 specular;
     float shininess;
+
+    // TODO currently we don't support normal texture
+    sampler2D normal_texture;
+    sampler2D diffuse_texture;
+    sampler2D specular_texture;
+
+    int normal_texture_num;
+    int diffuse_texture_num;
+    int specular_texture_num;
 };
 
 struct LightBase {
@@ -63,18 +73,33 @@ uniform LightNum lightnum;
 uniform vec3 viewPos;
 
 vec3 CalcBasicLightAmbient(Material material, vec3 ambient) {
-    return ambient*texture(material.diffuse, TexCoord).rgb;
+    if (material.diffuse_texture_num == 1) {
+        return ambient*material.ambient*texture(material.diffuse_texture, TexCoord).rgb;
+    }
+    return ambient*material.ambient;
 }
 
 vec3 CalcBasicLightDiffuse(Material material, vec3 diffuse, vec3 direction) {
     vec3 lightDir = -normalize(direction);
-    return diffuse*max(dot(lightDir, Normal), 0.0)*texture(material.diffuse, TexCoord).rgb;
+    vec3 diffuse_color;
+    if (material.diffuse_texture_num == 1) {
+        diffuse_color = texture(material.diffuse_texture, TexCoord).rgb;
+    } else {
+        diffuse_color = vec3(1.0f);
+    }
+    return diffuse*material.diffuse*max(dot(lightDir, Normal), 0.0)*diffuse_color;
 }
 
 vec3 CalcBasicLightSpecular(Material material, vec3 specular, vec3 direction) {
     vec3 reflectDir = reflect(normalize(direction), Normal);
     vec3 viewDir = normalize(viewPos - fragPos);
-    return specular*material.specular*pow(max(dot(reflectDir, viewDir), 0.0), material.shininess);
+    vec3 specular_color;
+    if (material.specular_texture_num == 1) {
+        specular_color = texture(material.specular_texture, TexCoord).rgb;
+    } else {
+        specular_color = vec3(1.0f);
+    }
+    return specular*material.specular*specular_color*pow(max(dot(reflectDir, viewDir), 0.0), material.shininess);
 }
 
 vec3 CalcBasicLight(Material material, LightBase base, vec3 direction) {

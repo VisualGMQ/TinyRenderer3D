@@ -11,18 +11,10 @@ namespace tinyrenderer3d {
 
 class Drawable {
  public:
-    Drawable();
-    virtual ~Drawable();
+    Drawable() = default;
+    virtual ~Drawable() = default;
 
-    bool HasTexture() const { return material.HasTexture(); }
-    virtual void Draw(Program* program) = 0;
-
-    Material material;
-
- protected:
-    GLuint vbo_ = 0;
-    GLuint ebo_ = 0;
-    GLuint vao_ = 0;
+    virtual void Draw(Program*) = 0;
 };
 
 }

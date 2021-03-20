@@ -42,7 +42,7 @@ class ILight {
     virtual void Apply(Program* program, int idx) const = 0;
 
  private:
-    Color ambient_ = {0, 0, 0, 255};
+    Color ambient_ = {255, 255, 255, 255};
     Color diffuse_ = {0, 0, 0, 255};
     Color specular_ = {0, 0, 0, 255};
 };
@@ -61,7 +61,7 @@ class DirectionLight: public ILight {
     void Apply(Program* program, int idx) const override;
 
  private:
-    Vec3<float> direction_ = {0, 0, 0};
+    Vec3<float> direction_ = {0, -1, -1};
 };
 
 class DotLight: public ILight {

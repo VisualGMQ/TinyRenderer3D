@@ -4,7 +4,7 @@
 
 namespace tinyrenderer3d {
 
-Texture::Texture(Renderer* render, TextureType type, int w, int h) {
+Texture::Texture(TextureType type, int w, int h) {
     if (w > 0 && h > 0) {
         GLCall(glGenTextures(1, &tex_));
         GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
@@ -58,19 +58,19 @@ Texture::~Texture() {
     GLCall(glDeleteFramebuffers(1, &fbo_));
 }
 
-Texture* CreateTexture(Renderer* render, TextureType type, int w, int h) {
-    Texture* texture = new Texture(render, type, w, h);
+Texture* CreateTexture(TextureType type, int w, int h) {
+    Texture* texture = new Texture(type, w, h);
     return texture;
 }
 
-Texture* LoadTexture(Renderer* render, TextureType type, std::string filename) {
+Texture* LoadTexture(TextureType type, std::string filename) {
     int w, h, channels;
     unsigned char* data = stbi_load(filename.c_str(), &w, &h, &channels, 0);
     if (!data) {
         Log("%s can't load", filename.c_str());
         return nullptr;
     }
-    Texture* texture = CreateTexture(render, type, w, h);
+    Texture* texture = CreateTexture(type, w, h);
     if (channels == 4) {
         texture->UpdateData(data, w, h, PIXEL_FORMAT_RGBA8888);
     } else {
