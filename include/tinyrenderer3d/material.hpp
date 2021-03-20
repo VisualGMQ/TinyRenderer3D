@@ -9,6 +9,9 @@
 namespace tinyrenderer3d {
 
 struct Material final {
+    static Material CreateColorMaterial(Color ambient, Color diffuse, Color specular, float shininess);
+    static Material CreateTextureMaterial(Texture* diffuse, Color specular, float shininess);
+
     std::vector<Texture*> textures;
 
     Color ambient = {255, 255, 255, 255};

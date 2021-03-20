@@ -2,6 +2,23 @@
 
 namespace tinyrenderer3d {
 
+Material Material::CreateColorMaterial(Color ambient, Color diffuse, Color specular, float shininess) {
+    Material material;
+    material.ambient = ambient;
+    material.diffuse = diffuse;
+    material.specular = specular;
+    material.shininess = shininess;
+    return material;
+}
+
+Material Material::CreateTextureMaterial(Texture* diffuse, Color specular, float shininess) {
+    Material material;
+    material.textures.push_back(diffuse);
+    material.specular = specular;
+    material.shininess = shininess;
+    return material;
+}
+
 void Material::Use(Program* program) {
     if (HasTexture()) {
         textures.at(0)->UseAsTexture();

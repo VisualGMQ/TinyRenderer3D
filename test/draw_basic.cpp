@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "tinyrenderer3d/light.hpp"
+#include "tinyrenderer3d/material.hpp"
 
 class DrawBasic: public App {
  public:
@@ -9,9 +10,7 @@ class DrawBasic: public App {
         tinyrenderer3d::DirectionLight dirlight;
         tinyrenderer3d::DotLight dotlight;
         tinyrenderer3d::SpotLight spotlight;
-        // dirlight.SetAmbient(255, 255, 255);
-        // dirlight.SetDiffuse(255, 255, 255);
-        // dirlight.SetSpecular(255, 255, 255);
+
         dirlight.SetDirection(-2, -2, -2);
         dirlight.SetAmbient(0, 0, 0);
         dirlight.SetDiffuse(0, 0, 0);
@@ -71,10 +70,7 @@ class DrawBasic: public App {
         color_cube_.l = 1;                  // length
         color_cube_.rotation = {0, 0, 0};   // rotation
 
-        color_cube_.material.ambient = {0, 0, 0, 255};
-        color_cube_.material.diffuse = {0, 200, 0, 255};
-        color_cube_.material.specular = {0, 200, 0, 255};
-        color_cube_.material.shininess = 32;
+        color_cube_.material = tinyrenderer3d::Material::CreateColorMaterial({0, 0, 0, 255}, {0, 200, 0, 255}, {0, 200, 0, 255}, 32);
     }
 
     void initTextureCube() {
@@ -82,10 +78,7 @@ class DrawBasic: public App {
         texture_cube_.l = 1;                 // length
         texture_cube_.rotation = {0, 0, 0};  // rotation
 
-        texture_cube_.material.ambient = {255, 255, 0, 255};
-        texture_cube_.material.specular = {0, 200, 0, 255};
-        texture_cube_.material.textures.push_back(texture_);
-        texture_cube_.material.shininess = 32;
+        texture_cube_.material = tinyrenderer3d::Material::CreateTextureMaterial(texture_, {0, 200, 0, 255}, 32);
     }
 
     void initPlane() {
@@ -93,14 +86,8 @@ class DrawBasic: public App {
         plane_.size = {10, 10};
         plane_.rotation = {0, 0, 0};
 
-        plane_.material.ambient = {0, 0, 0, 255};
-        // material.diffuse = {200, 200, 0, 255};
-        plane_.material.textures.push_back(texture_);
-        plane_.material.specular = {200, 200, 0, 255};
-        plane_.material.shininess = 32;
+        plane_.material = tinyrenderer3d::Material::CreateTextureMaterial(texture_, {200, 200, 0, 255}, 32);
     }
-
-
 };
 
 int main(int argc, char** argv) {
