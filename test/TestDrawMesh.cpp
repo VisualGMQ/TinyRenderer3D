@@ -49,9 +49,9 @@ class DrawMesh: public TestFramework {
         plane_.vertices = vertices;
         plane_.indices = indices;
         plane_.scale = {10, 1, 10};
-        plane_.material.ambient = {150, 150, 150, 255};
-        plane_.material.diffuse = {150, 150, 150, 255};
-        plane_.material.specular = {150, 150, 150, 255};
+        plane_.material.ambient = {0.6, 0.6, 0.6};
+        plane_.material.diffuse = {0.6, 0.6, 0.6};
+        plane_.material.specular = {0.6, 0.6, 0.6};
         plane_.material.shininess = 32;
         plane_.material.diffuse_texture = texture_;
     }
@@ -105,9 +105,9 @@ class DrawMesh: public TestFramework {
         cube_.vertices = vertices;
         cube_.scale = {1, 1, 1};
 
-        cube_.material.ambient = {0, 200, 200, 255};
-        cube_.material.diffuse = {0, 200, 200, 255};
-        cube_.material.specular = {0, 200, 200, 255};
+        cube_.material.ambient = {0, 0.7, 0.7};
+        cube_.material.diffuse = {0, 0.7, 0.7};
+        cube_.material.specular = {0, 0.7, 0.7};
         cube_.material.shininess = 32;
     }
 
@@ -116,9 +116,9 @@ class DrawMesh: public TestFramework {
         texture_cube_.center = {1.5, 0, 0};
         texture_cube_.scale = {1, 1, 1};
 
-        texture_cube_.material.ambient = {0, 200, 200, 255};
-        texture_cube_.material.diffuse = {0, 200, 200, 255};
-        texture_cube_.material.specular = {0, 200, 200, 255};
+        texture_cube_.material.ambient = {0, 0.8, 0.8};
+        texture_cube_.material.diffuse = {0, 0.8, 0.8};
+        texture_cube_.material.specular = {0, 0.8, 0.8};
         texture_cube_.material.shininess = 32;
         texture_cube_.material.diffuse_texture = texture_;
     }

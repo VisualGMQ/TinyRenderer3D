@@ -11,9 +11,9 @@ namespace tinyrenderer3d {
 using std::vector;
 
 struct Material final {
-    Color ambient = {0, 0, 0, 255};
-    Color diffuse = {0, 0, 0, 255};
-    Color specular = {0, 0, 0, 255};
+    Color3<float> ambient = {0, 0, 0};
+    Color3<float> diffuse = {0, 0, 0};
+    Color3<float> specular = {0, 0, 0};
     float shininess = 0;
     // NOTE: temporary only support one texture
     // vector<Texture*> ambient_textures;

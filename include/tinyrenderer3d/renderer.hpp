@@ -16,7 +16,7 @@
 #include "log.hpp"
 #include "camera.hpp"
 #include "light.hpp"
-#include "mesh.hpp"
+#include "model.hpp"
 
 namespace tinyrenderer3d {
 
@@ -45,6 +45,13 @@ class Renderer final {
     void SetViewport(int x, int y, int w, int h);
 
     void SetPointSize(uint32_t size);
+
+    // feature functions
+    void EnableFaceCull(GLenum face, bool ccw);
+    void DisableFaceCull();
+
+    void EnableMultisample();
+    void DisableMultisample();
 
     // camera functions
     Camera* GetCamera() { return camera_; }

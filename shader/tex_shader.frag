@@ -91,6 +91,9 @@ vec3 CalcBasicLightDiffuse(Material material, vec3 diffuse, vec3 direction) {
 }
 
 vec3 CalcBasicLightSpecular(Material material, vec3 specular, vec3 direction) {
+    if (material.shininess == 0) {
+        return vec3(0.0f);
+    }
     vec3 reflectDir = reflect(normalize(direction), Normal);
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 specular_color;

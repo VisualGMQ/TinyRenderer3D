@@ -18,22 +18,22 @@ class ILight {
  public:
     virtual ~ILight() = default;
 
-    Color GetAmbient() const { return ambient_; }
-    void SetAmbient(u8 r, u8 g, u8 b) {
+    Color3<float> GetAmbient() const { return ambient_; }
+    void SetAmbient(float r, float g, float b) {
         ambient_.r = r;
         ambient_.g = g;
         ambient_.b = b;
     }
 
-    Color GetDiffuse() const { return diffuse_; }
-    void SetDiffuse(u8 r, u8 g, u8 b) {
+    Color3<float> GetDiffuse() const { return diffuse_; }
+    void SetDiffuse(float r, float g, float b) {
         diffuse_.r = r;
         diffuse_.g = g;
         diffuse_.b = b;
     }
 
-    Color GetSpecular() const { return specular_; }
-    void SetSpecular(u8 r, u8 g, u8 b) {
+    Color3<float> GetSpecular() const { return specular_; }
+    void SetSpecular(float r, float g, float b) {
         specular_.r = r;
         specular_.g = g;
         specular_.b = b;
@@ -42,9 +42,9 @@ class ILight {
     virtual void Apply(Program* program, int idx) const = 0;
 
  private:
-    Color ambient_ = {255, 255, 255, 255};
-    Color diffuse_ = {0, 0, 0, 255};
-    Color specular_ = {0, 0, 0, 255};
+    Color3<float> ambient_ = {1, 1, 1};
+    Color3<float> diffuse_ = {0, 0, 0};
+    Color3<float> specular_ = {0, 0, 0};
 };
 
 class DirectionLight: public ILight {

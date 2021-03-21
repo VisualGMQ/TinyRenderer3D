@@ -28,9 +28,9 @@ void Material::Use(Program* program) {
         GLCall(program->Uniform1i("material.specular_texture_num", 0));
     }
 
-    program->UniformVec3f("material.diffuse", ConvertColor4To3(ConvertColor255To01<float>(diffuse)));
-    program->UniformVec3f("material.ambient", ConvertColor4To3(ConvertColor255To01<float>(ambient)));
-    program->UniformVec3f("material.specular", ConvertColor4To3(ConvertColor255To01<float>(specular)));
+    program->UniformVec3f("material.diffuse", diffuse);
+    program->UniformVec3f("material.ambient", ambient);
+    program->UniformVec3f("material.specular", specular);
     program->Uniform1f("material.shininess", shininess);
 }
 

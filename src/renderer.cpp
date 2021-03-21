@@ -39,12 +39,32 @@ void Renderer::initFeatures() {
     GLCall(glEnable(GL_BLEND));
     GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
-    GLCall(glEnable(GL_MULTISAMPLE));
     GLCall(glEnable(GL_STENCIL_TEST));
     GLCall(glEnable(GL_DEPTH_TEST));
+    EnableMultisample();
+    EnableFaceCull(GL_BACK, true);
+}
+
+void Renderer::EnableMultisample() {
+    GLCall(glEnable(GL_MULTISAMPLE));
+}
+
+void Renderer::DisableMultisample() {
+    GLCall(glDisable(GL_MULTISAMPLE));
+}
+
+void Renderer::EnableFaceCull(GLenum face, bool front_ccw) {
     GLCall(glEnable(GL_CULL_FACE));
-    GLCall(glCullFace(GL_BACK));
-    GLCall(glFrontFace(GL_CCW));
+    GLCall(glCullFace(face));
+    if (front_ccw) {
+        GLCall(glFrontFace(GL_CCW));
+    } else {
+        GLCall(glFrontFace(GL_CW));
+    }
+}
+
+void Renderer::DisableFaceCull() {
+    GLCall(glDisable(GL_CULL_FACE));
 }
 
 void Renderer::SetClearColor(const Color& color) {

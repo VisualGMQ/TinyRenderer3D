@@ -42,16 +42,16 @@ class DrawMesh: public TestFramework {
         DotLight dotlight;
         dotlight.SetPosition(1, 1, 1);
         dotlight.SetAmbient(0, 0, 0);
-        dotlight.SetDiffuse(100, 100, 100);
-        dotlight.SetSpecular(100, 100, 100);
+        dotlight.SetDiffuse(0.55, 0.55, 0.55);
+        dotlight.SetSpecular(0.55, 0.55, 0.55);
         lights_.dotlights.push_back(dotlight);
 
         SpotLight spotlight;
         spotlight.SetPosition(0, 1, 0);
         spotlight.SetDirection(0, -1, 0);
-        spotlight.SetAmbient(200, 200, 200);
-        spotlight.SetDiffuse(200, 200, 200);
-        spotlight.SetSpecular(100, 100, 100);
+        spotlight.SetAmbient(0.8, 0.8, 0.8);
+        spotlight.SetDiffuse(0.8, 0.8, 0.8);
+        spotlight.SetSpecular(0.4, 0.4, 0.4);
         spotlight.SetParameter(50, 40);
         lights_.spotlights.push_back(spotlight);
         
@@ -74,9 +74,9 @@ class DrawMesh: public TestFramework {
         plane_.vertices = vertices;
         plane_.indices = indices;
         plane_.scale = {10, 1, 10};
-        plane_.material.ambient = {150, 150, 150, 255};
-        plane_.material.diffuse = {150, 150, 150, 255};
-        plane_.material.specular = {150, 150, 150, 255};
+        plane_.material.ambient = {0.6, 0.6, 0.6};
+        plane_.material.diffuse = {0.6, 0.6, 0.6};
+        plane_.material.specular = {0.6, 0.6, 0.6};
         plane_.material.shininess = 32;
     }
 
@@ -129,9 +129,9 @@ class DrawMesh: public TestFramework {
         texture_cube_.center = {1.5, 0, 0};
         texture_cube_.scale = {1, 1, 1};
 
-        texture_cube_.material.ambient = {0, 200, 200, 255};
-        texture_cube_.material.diffuse = {0, 200, 200, 255};
-        texture_cube_.material.specular = {0, 200, 200, 255};
+        texture_cube_.material.ambient = {0, 0.7, 0.7};
+        texture_cube_.material.diffuse = {0, 0.7, 0.7};
+        texture_cube_.material.specular = {0, 0.7, 0.7};
         texture_cube_.material.shininess = 32;
         texture_cube_.material.diffuse_texture = texture_;
     }
