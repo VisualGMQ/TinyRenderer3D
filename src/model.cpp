@@ -12,7 +12,7 @@ Model::Model(const string& obj_filename) {
 
 void Model::Load(const string& obj_filename) {
     Assimp::Importer importer;
-    const aiScene *scene = importer.ReadFile(obj_filename, aiProcess_Triangulate|aiProcess_FixInfacingNormals|aiProcess_FlipUVs|aiProcess_GenSmoothNormals);
+    const aiScene *scene = importer.ReadFile(obj_filename, aiProcess_Triangulate|aiProcess_FixInfacingNormals|aiProcess_FlipUVs|aiProcess_CalcTangentSpace|aiProcess_GenSmoothNormals);
     if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         Log("assimp error: %s", importer.GetErrorString());
         return;
@@ -35,9 +35,19 @@ void Model::Load(const string& obj_filename) {
             vertex.normal.y = normal.y;
             vertex.normal.z = normal.z;
 
+            aiVector3D tangent = aimesh->mTangents[v];
+            vertex.tangent.x = tangent.x;
+            vertex.tangent.y = tangent.y;
+            vertex.tangent.z = tangent.z;
+
+            aiVector3D bitangent = aimesh->mBitangents[v];
+            vertex.bitangent.x = bitangent.x;
+            vertex.bitangent.y = bitangent.y;
+            vertex.bitangent.z = bitangent.z;
+
             if (aimesh->mTextureCoords[0]) {
-                vertex.texcoord.x = aimesh->mTextureCoords[0][i].x;
-                vertex.texcoord.y = aimesh->mTextureCoords[0][i].y;
+                vertex.texcoord.x = aimesh->mTextureCoords[0][v].x;
+                vertex.texcoord.y = aimesh->mTextureCoords[0][v].y;
             } else {
                 vertex.texcoord = {0, 0};
             }
@@ -75,9 +85,15 @@ void Model::Load(const string& obj_filename) {
             if (!diffuse_textures.empty()) {
                 material.diffuse_texture = diffuse_textures[0]; //  FIXME to suuport multi texture
             }
+
             vector<Texture*> specular_textures = loadMaterialTextures(aimaterial, aiTextureType_SPECULAR, "texture_specular");
             if (!specular_textures.empty()) {
                 material.specular_texture = specular_textures[0]; //  FIXME to suuport multi texture
+            }
+
+            vector<Texture*> normal_textures = loadMaterialTextures(aimaterial, aiTextureType_HEIGHT, "texture_normal");
+            if (!normal_textures.empty()) {
+                material.normal_texture = normal_textures[0]; //  FIXME to suuport multi texture
             }
         }
         mesh.material = material;
@@ -125,6 +141,12 @@ void Model::SetRotation(float x, float y, float z) {
 void Model::Draw(Program* program) {
     for (Mesh& mesh: meshes_) {
         mesh.Draw(program);
+    }
+}
+
+void Model::DrawForShadow(Program* program) {
+    for (Mesh& mesh: meshes_) {
+        mesh.DrawForShadow(program);
     }
 }
 

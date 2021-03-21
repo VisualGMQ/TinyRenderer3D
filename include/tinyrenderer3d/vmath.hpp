@@ -116,6 +116,8 @@ struct Vertex {
     Vec3<float> position;
     Vec2<float> texcoord;
     Vec3<float> normal;
+    Vec3<float> tangent;
+    Vec3<float> bitangent;
 };
 
 }; // NAMESPACE tinyrender3d

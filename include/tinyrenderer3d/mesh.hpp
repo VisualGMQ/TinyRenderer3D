@@ -18,6 +18,7 @@ class Mesh: public Drawable {
     Mesh();
     ~Mesh();
 
+    void DrawForShadow(Program* program) override;
     void Draw(Program* program) override;
 
     vector<Vertex> vertices;
@@ -34,7 +35,9 @@ class Mesh: public Drawable {
     GLuint vao_ = 0;
 
     void bindBuffers();
+    void bufferDatas();
     void unbindBuffers();
+    void draw();
     Mat4<float> calcModel();
 };
 

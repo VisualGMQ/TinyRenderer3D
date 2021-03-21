@@ -1,5 +1,6 @@
 #include "tinyrenderer3d/renderer.hpp"
 #include "stb_image.h"
+#include "tinyrenderer3d/program.hpp"
 
 namespace tinyrenderer3d {
 
@@ -8,7 +9,11 @@ Renderer::Renderer(int window_width, int window_height) {
     initColors();
     initFeatures();
     initDrawSize(window_width, window_height);
+
+    // TODO if shadow_map_'s size are (window_width, window_height)???
+    shadow_map_ = new ShadowMap(1024, 1024);
     camera_ = new Camera;
+
     stbi_set_flip_vertically_on_load(true);
 };
 
@@ -110,14 +115,36 @@ void Renderer::AddObject(Drawable* obj) {
     drawables_.push_back(obj);
 }
 
-void Renderer::Draw() {
+void Renderer::DrawShadowPre() {
+    // TODO when you want use shadow, open it
+    // GLint data[4] = {0};
+    // GLCall(glGetIntegerv(GL_VIEWPORT, data));
+    // Rect<int> viewport = {{data[0], data[1]}, {data[2], data[3]}};
+    // Program* program = UseShadowProgram();
+    // // TODO add more light uniform matrix
+    // lights_.dirlight.UniformLightMatrix(program);
+    // // TODO uniform lightmatrix to program
+    // shadow_map_->Use(viewport);
+    // // TODO uniform lightmatrix to program
     for (Drawable* obj: drawables_) {
-        drawOneObj(obj);
+        obj->DrawForShadow(program);
+    }
+    // shadow_map_->DontUse();
+}
+
+void Renderer::Draw() {
+    // DrawShadowPre();
+    GLCall(glActiveTexture(GL_TEXTURE6));
+    shadow_map_->UseAsTarget();
+    Program* program = UseTextureProgram();
+    // if you want to use shadow, uncomment it
+    // program->Uniform1i("shadow_texture", 6);
+    for (Drawable* obj: drawables_) {
+        drawOneObj(obj, program);
     }
 }
 
-void Renderer::drawOneObj(Drawable* obj) {
-    Program* program = UseTextureProgram();
+void Renderer::drawOneObj(Drawable* obj, Program* program) {
     applyMatrices(program, project_, camera_->GetMatrix());
     applyLights(program, lights_);
     obj->Draw(program);
@@ -166,8 +193,9 @@ Renderer::~Renderer() {
 }
 
 void Renderer::destroy() {
-    delete texture_program_;
-    delete shadow_program_;
+    DestroyProgram(texture_program_);
+    DestroyProgram(shadow_program_);
+    delete shadow_map_;
     delete camera_;
 }
 

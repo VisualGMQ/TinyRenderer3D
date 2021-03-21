@@ -8,6 +8,8 @@ out vec4 outColor;
 in vec2 TexCoord;
 in vec3 Normal;
 in vec3 fragPos;
+in vec4 fragPosLightSpace;
+in mat3 TBN;
 
 struct Material {
     vec3 ambient;
@@ -75,66 +77,88 @@ uniform LightNum lightnum;
 
 uniform vec3 viewPos;
 
+// uniform sampler2D shadow_texture;
+
+// not use
+// float CalcShadow(vec4 frag_pos_light_space) {
+//     vec3 proj_coords = frag_pos_light_space.xyz/frag_pos_light_space.w;
+//     proj_coords = proj_coords * 0.5 + 0.5;
+//     float closest_depth = texture(shadow_texture, proj_coords.xy).r;
+//     float current_depth = proj_coords.z;
+//     float shadow = current_depth > closest_depth  ? 1.0 : 0.0;
+//     return shadow;
+// }
+
+vec3 CalcNormal() {
+    if (material.normal_texture_num == 1) {
+        vec3 n = texture(material.normal_texture, TexCoord).rgb;
+        n = normalize(n* 2.0 - 1.0);   
+        n = normalize(TBN*n);
+        return n;
+    }
+    return Normal;
+}
+
 vec3 CalcBasicLightAmbient(Material material, vec3 ambient) {
     if (material.diffuse_texture_num == 1) {
-        return ambient*material.ambient*texture(material.diffuse_texture, TexCoord).rgb;
+        return ambient*texture(material.diffuse_texture, TexCoord).rgb;
     }
     return ambient*material.ambient;
 }
 
-vec3 CalcBasicLightDiffuse(Material material, vec3 diffuse, vec3 direction) {
+vec3 CalcBasicLightDiffuse(Material material, vec3 diffuse, vec3 direction, vec3 normal) {
     vec3 lightDir = -normalize(direction);
     vec3 diffuse_color;
     if (material.diffuse_texture_num == 1) {
         diffuse_color = texture(material.diffuse_texture, TexCoord).rgb;
     } else {
-        diffuse_color = vec3(1.0f);
+        diffuse_color = material.diffuse;
     }
-    return diffuse*material.diffuse*max(dot(lightDir, Normal), 0.0)*diffuse_color;
+    return diffuse*max(dot(lightDir, normal), 0.0)*diffuse_color;
 }
 
-vec3 CalcBasicLightSpecular(Material material, vec3 specular, vec3 direction) {
+vec3 CalcBasicLightSpecular(Material material, vec3 specular, vec3 direction, vec3 normal) {
     if (material.shininess == 0) {
         return vec3(0.0f);
     }
-    vec3 reflectDir = reflect(normalize(direction), Normal);
+    vec3 reflectDir = reflect(normalize(direction), normal);
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 specular_color;
     if (material.specular_texture_num == 1) {
         specular_color = texture(material.specular_texture, TexCoord).rgb;
     } else {
-        specular_color = vec3(1.0f);
+        specular_color = material.specular;
     }
-    return specular*material.specular*specular_color*pow(max(dot(reflectDir, viewDir), 0.0), material.shininess);
+    return specular*specular_color*pow(max(dot(reflectDir, viewDir), 0.0), material.shininess);
 }
 
-vec3 CalcBasicLight(Material material, LightBase base, vec3 direction) {
+vec3 CalcBasicLight(Material material, LightBase base, vec3 direction, vec3 normal) {
     vec3 ambient = CalcBasicLightAmbient(material, base.ambient);
-    vec3 diffuse = CalcBasicLightDiffuse(material, base.diffuse, direction);
-    vec3 specular = CalcBasicLightSpecular(material, base.specular, direction);
+    vec3 diffuse = CalcBasicLightDiffuse(material, base.diffuse, direction, normal);
+    vec3 specular = CalcBasicLightSpecular(material, base.specular, direction, normal);
     return ambient+diffuse+specular;
 }
 
-vec3 CalcDirectionLight(Material material) {
-    return CalcBasicLight(material, directionLight.base, directionLight.direction);
+vec3 CalcDirectionLight(Material material, vec3 normal) {
+    return CalcBasicLight(material, directionLight.base, directionLight.direction, normal);
 }
 
-vec3 CalcDotLight(Material material, DotLight light) {
+vec3 CalcDotLight(Material material, DotLight light, vec3 normal) {
     float dist = length(light.position - fragPos);
     float attenuation = 1.0/(light.attenuation.constant+light.attenuation.linear*dist+light.attenuation.quadratic*dist*dist);
 
-    vec3 color = CalcBasicLight(material, light.base, normalize(fragPos - light.position));
+    vec3 color = CalcBasicLight(material, light.base, normalize(fragPos - light.position), normal);
 
     return attenuation*color;
 }
 
-vec3 CalcSpotLight(Material material, SpotLight light) {
+vec3 CalcSpotLight(Material material, SpotLight light, vec3 normal) {
     float outer_cutoff = cos(radians(light.angle.outer_cutoff));
     float inner_cutoff = cos(radians(light.angle.inner_cutoff));
     float theta = dot(normalize(fragPos - light.position), normalize(light.direction));
     float intensity = clamp((theta - outer_cutoff)/(inner_cutoff - outer_cutoff), 0.0, 1.0 );
 
-    vec3 color = CalcBasicLight(material, light.base, light.direction);
+    vec3 color = CalcBasicLight(material, light.base, light.direction, normal);
 
     if (theta > outer_cutoff) {
         return intensity*color;
@@ -143,15 +167,16 @@ vec3 CalcSpotLight(Material material, SpotLight light) {
 }
 
 void main() {
+    vec3 normal = CalcNormal();
     if (material.emission_texture_num == 1) {
         outColor = texture(material.emission_texture, TexCoord);
     } else {
-        vec3 color = CalcDirectionLight(material);
+        vec3 color = CalcDirectionLight(material, normal);
         for (int i = 0; i < lightnum.dotlight && i < DOT_LIGHT_MAX_NUM; i++) {
-            color += CalcDotLight(material, dotLights[i]);
+            color += CalcDotLight(material, dotLights[i], normal);
         }
         for (int i = 0; i < lightnum.spotlight && i < SPOT_LIGHT_MAX_NUM; i++) {
-            color += CalcSpotLight(material, spotLights[i]);
+            color += CalcSpotLight(material, spotLights[i], normal);
         }
         outColor = vec4(color, 1.0);
     }

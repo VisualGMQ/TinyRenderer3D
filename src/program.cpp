@@ -13,8 +13,8 @@ Program::Program(string name, Shader& vertex_shader, Shader& frag_shader):name_(
     if (!success) {
         char buf[1024] = {0};
         GLCall(glGetProgramInfoLog(program_, sizeof(buf)-1, nullptr, buf));
-        std::cout << "program link error:" << std::endl;
-        std::cout << buf << std::endl;
+        Log("%s program link error:", name_.c_str());
+        Log("%s", buf);
         throw std::runtime_error("program linkded failed");
     }
 }
@@ -72,7 +72,7 @@ void Program::Uniform4f(const string& name, float value1, float value2, float va
 GLint Program::findUniformLocation(const string& name) {
     GLint loc = glGetUniformLocation(program_, name.c_str());
     if (loc == -1) {
-        std::cerr << name + " uniform variable not found" << std::endl;
+        Log("[%s]: uniform %s variable not found", name_.c_str(), name.c_str());
     }
     return loc;
 }

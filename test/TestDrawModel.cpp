@@ -27,8 +27,6 @@ class DrawModel: public TestFramework {
     }
 
     void Step() override{
-        GetRenderer()->SetClearColor(255, 255, 255);
-        GetRenderer()->Clear();
         static float angle = 0;
         cube_.SetRotation(0, angle, angle);
         angle += 2;
@@ -46,7 +44,7 @@ class DrawModel: public TestFramework {
 
     void initNanoModel() {
         nano_.Load("test_resources/nanosuit/nanosuit.obj");
-        nano_.SetPosition(2, 0, 0);
+        nano_.SetPosition(2, -10, 0);
         nano_.SetScale(1, 1, 1);
     }
 };

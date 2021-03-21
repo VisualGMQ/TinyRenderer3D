@@ -4,11 +4,18 @@ namespace tinyrenderer3d {
 
 void DirectionLight::Apply(Program* program, int idx) const {
     if (program) {
+        UniformLightMatrix(program);
         program->UniformVec3f("directionLight.base.ambient", GetAmbient());
         program->UniformVec3f("directionLight.base.diffuse", GetDiffuse());
         program->UniformVec3f("directionLight.base.specular", GetSpecular());
         program->UniformVec3f("directionLight.direction", direction_);
     }
+}
+
+void DirectionLight::UniformLightMatrix(Program* program) const {
+    Mat4<float> lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 7.5f);
+    Mat4<float> lightView = glm::lookAt(Vec3<float>(0.0f) - Vec3<float>(10, 10, 10)*GetDirection(), Vec3<float>(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    program->UniformMat4f("lightmatrix", lightProjection*lightView);
 }
 
 void DotLight::SetParameter(float constant, float linear, float quadratic) {
@@ -27,6 +34,9 @@ void DotLight::Apply(Program* program, int idx) const {
     program->Uniform1f(light_name+".attenuation.linear", parameter_.linear);
     program->Uniform1f(light_name+".attenuation.quadratic", parameter_.quadratic);
 }
+
+// TODO not finish
+void DotLight::UniformLightMatrix(Program* program) const {}
 
 void SpotLight::SetParameter(float outer_cutoff, float inner_cutoff) {
     outer_cutoff_ = outer_cutoff;
@@ -57,5 +67,8 @@ void SpotLight::Apply(Program* program, int idx) const {
         program->Uniform1f(light_name+".angle.inner_cutoff", inner_cutoff_);
     }
 }
+
+// TODO not finish
+void SpotLight::UniformLightMatrix(Program* program) const {}
 
 }

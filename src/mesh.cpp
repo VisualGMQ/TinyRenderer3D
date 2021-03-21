@@ -18,11 +18,7 @@ void Mesh::Draw(Program* program) {
     program->UniformMat4f("model", calcModel());
 
     bindBuffers();
-
-    GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex)*vertices.size(), vertices.data(), GL_STATIC_DRAW));
-    if (!indices.empty()) {
-        GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint)*indices.size(), indices.data(), GL_STATIC_DRAW));
-    }
+    bufferDatas();
 
     GLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position)));
     GLCall(glEnableVertexAttribArray(0));
@@ -30,17 +26,46 @@ void Mesh::Draw(Program* program) {
     GLCall(glEnableVertexAttribArray(1));
     GLCall(glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal)));
     GLCall(glEnableVertexAttribArray(2));
+    GLCall(glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent)));
+    GLCall(glEnableVertexAttribArray(3));
+    GLCall(glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent)));
+    GLCall(glEnableVertexAttribArray(4));
 
     material.Use(program);
 
+    draw();
+
+    material.DontUse();
+    unbindBuffers();
+}
+
+void Mesh::DrawForShadow(Program* program) {
+    program->UniformMat4f("model", calcModel());
+
+    bindBuffers();
+    bufferDatas();
+
+    GLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position)));
+    GLCall(glEnableVertexAttribArray(0));
+
+    draw();
+
+    unbindBuffers();
+}
+
+void Mesh::draw() {
     if (!indices.empty()) {
         GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
     } else {
         GLCall(glDrawArrays(GL_TRIANGLES, 0, vertices.size()));
     }
-    
-    material.DontUse();
-    unbindBuffers();
+}
+
+void Mesh::bufferDatas() {
+    GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex)*vertices.size(), vertices.data(), GL_STATIC_DRAW));
+    if (!indices.empty()) {
+        GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint)*indices.size(), indices.data(), GL_STATIC_DRAW));
+    }
 }
 
 void Mesh::bindBuffers() {

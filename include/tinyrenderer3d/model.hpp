@@ -29,6 +29,7 @@ class Model: public Drawable {
     Vec3<float> GetRotation() const { return rotation_; }
 
     void Draw(Program*) override;
+    void DrawForShadow(Program*) override;
 
  private:
     list<Mesh> meshes_;

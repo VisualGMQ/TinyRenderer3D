@@ -39,6 +39,7 @@ class ILight {
         specular_.b = b;
     }
 
+    virtual void UniformLightMatrix(Program* program) const = 0;
     virtual void Apply(Program* program, int idx) const = 0;
 
  private:
@@ -58,6 +59,7 @@ class DirectionLight: public ILight {
         direction_.z = z;
     }
 
+    void UniformLightMatrix(Program* program) const override;
     void Apply(Program* program, int idx) const override;
 
  private:
@@ -83,6 +85,7 @@ class DotLight: public ILight {
     }
     Vec3<float> GetPosition() const { return position_; }
 
+    void UniformLightMatrix(Program* program) const override;
     void Apply(Program* program, int idx) const override;
 
  private:
@@ -102,6 +105,7 @@ class SpotLight: public ILight {
     float GetOuterCutOff() const { return outer_cutoff_; }
     float GetInnerCutOff() const { return inner_cutoff_; }
 
+    void UniformLightMatrix(Program* program) const override;
     void Apply(Program* program, int idx) const override;
 
  private:

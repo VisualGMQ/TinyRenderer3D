@@ -14,6 +14,7 @@ class Drawable {
     Drawable() = default;
     virtual ~Drawable() = default;
 
+    virtual void DrawForShadow(Program* program) = 0;
     virtual void Draw(Program*) = 0;
 };
 

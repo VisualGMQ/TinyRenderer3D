@@ -6,6 +6,7 @@
 #include "shader.hpp"
 #include "vmath.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "log.hpp"
 
 namespace tinyrenderer3d {
 

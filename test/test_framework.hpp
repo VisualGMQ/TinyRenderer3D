@@ -37,6 +37,10 @@ class TestFramework {
         glewInit();
 
         render_ = CreateRenderer(WindowWidth, WindowHeight);
+        if (GLEW_ARB_debug_output) {
+            Log("your opengl support GL_ARB_debug_output");
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+        }
     }
 
     virtual ~TestFramework() {

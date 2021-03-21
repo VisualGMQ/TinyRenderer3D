@@ -15,21 +15,43 @@ ShadowMap::ShadowMap(int w, int h) {
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo_));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex_, 0));
     GLCall(glDrawBuffer(GL_NONE));
-    GLCall(glReadBuffer(GL_NONE));
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         Log("shadow map framebuffer create failed");
     }
 
-    DontUse();
+    viewport_.w = w;
+    viewport_.h = h;
+
+    unbind();
 }
 
-void ShadowMap::Use() {
+void ShadowMap::Use(const Rect<int>& old_viewport) {
+    bind();
+    GLCall(glViewport(0, 0, viewport_.w, viewport_.h));
+    GLCall(glClear(GL_DEPTH_BUFFER_BIT));
+
+    old_viewport_ = old_viewport;
+}
+
+void ShadowMap::UseAsTarget() {
+    GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
+}
+
+void ShadowMap::DontUse() {
+    unbind();
+    if (old_viewport_.has_value()) {
+        GLCall(glViewport(old_viewport_->position.x, old_viewport_->position.y, old_viewport_->size.w, old_viewport_->size.h));
+        old_viewport_.reset();
+    }
+}
+
+void ShadowMap::bind() {
     GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo_));
 }
 
-void ShadowMap::DontUse() {
+void ShadowMap::unbind() {
     GLCall(glBindTexture(GL_TEXTURE_2D, 0));
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
