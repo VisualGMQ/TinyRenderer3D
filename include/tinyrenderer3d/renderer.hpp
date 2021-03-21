@@ -57,11 +57,6 @@ class Renderer final {
     Camera* GetCamera() { return camera_; }
 
     // program functions
-    Program* UsePureColorProgram() {
-        pure_color_program_->Use();
-        return pure_color_program_;
-    }
-
     Program* UseShadowProgram() {
         shadow_program_->Use();
         return shadow_program_;
@@ -106,7 +101,6 @@ class Renderer final {
     LightSet lights_;
     vector<Drawable*> drawables_;
 
-    Program* pure_color_program_ = nullptr;
     Program* texture_program_ = nullptr;
     Program* shadow_program_ = nullptr;
 

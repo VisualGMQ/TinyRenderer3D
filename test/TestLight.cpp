@@ -9,29 +9,38 @@ class DrawMesh: public TestFramework {
  public:
     DrawMesh(): TestFramework("draw mesh") {
         texture_ = LoadTexture(TEXTURE_TYPE_STATIC, "test_resources/ghost.png");
+        emission_texture_ = LoadTexture(TEXTURE_TYPE_STATIC, "test_resources/matrix.jpg");
         initPlane();
         initTextureCube();
+        initEmissionCube();
 
         GetRenderer()->AddObject(&plane_);
         GetRenderer()->AddObject(&texture_cube_);
+        GetRenderer()->AddObject(&emission_cube_);
 
         initLight();
         GetRenderer()->SetLights(lights_);
     }
 
     ~DrawMesh() {
-        delete texture_;
+        DestroyTexture(texture_);
+        DestroyTexture(emission_texture_);
     }
 
     void Step() override{
         texture_cube_.rotation.x += 2;         
         texture_cube_.rotation.z += 3;         
+
+        emission_cube_.rotation.x += 3;         
+        emission_cube_.rotation.z += 5;         
     }
 
  private:
     Mesh plane_;
     Mesh texture_cube_;
+    Mesh emission_cube_;
     Texture* texture_;
+    Texture* emission_texture_;
     LightSet lights_;
 
     void initLight() {
@@ -129,11 +138,19 @@ class DrawMesh: public TestFramework {
         texture_cube_.center = {1.5, 0, 0};
         texture_cube_.scale = {1, 1, 1};
 
+        texture_cube_.center = {0, 0, 0};
+
         texture_cube_.material.ambient = {0, 0.7, 0.7};
         texture_cube_.material.diffuse = {0, 0.7, 0.7};
         texture_cube_.material.specular = {0, 0.7, 0.7};
         texture_cube_.material.shininess = 32;
         texture_cube_.material.diffuse_texture = texture_;
+    }
+
+    void initEmissionCube() {
+        emission_cube_.center = {-3, 0, -3};
+        emission_cube_.vertices = texture_cube_.vertices;
+        emission_cube_.material.emission_texture = emission_texture_;
     }
 };
 

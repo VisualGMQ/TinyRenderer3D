@@ -44,7 +44,7 @@ void Texture::DontUse() {
 void Texture::UpdateData(unsigned char* data, int w, int h, PixelFormat format) {
     GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
     if (format == PIXEL_FORMAT_RGB888) {
-        GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
+        GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data));
     } else if (format == PIXEL_FORMAT_RGBA8888) {
         GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
     } else {

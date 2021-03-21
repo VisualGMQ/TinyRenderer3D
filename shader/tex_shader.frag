@@ -20,9 +20,12 @@ struct Material {
     sampler2D diffuse_texture;
     sampler2D specular_texture;
 
+    sampler2D emission_texture;
+
     int normal_texture_num;
     int diffuse_texture_num;
     int specular_texture_num;
+    int emission_texture_num;
 };
 
 struct LightBase {
@@ -140,12 +143,16 @@ vec3 CalcSpotLight(Material material, SpotLight light) {
 }
 
 void main() {
-    vec3 color = CalcDirectionLight(material);
-    for (int i = 0; i < lightnum.dotlight && i < DOT_LIGHT_MAX_NUM; i++) {
-        color += CalcDotLight(material, dotLights[i]);
+    if (material.emission_texture_num == 1) {
+        outColor = texture(material.emission_texture, TexCoord);
+    } else {
+        vec3 color = CalcDirectionLight(material);
+        for (int i = 0; i < lightnum.dotlight && i < DOT_LIGHT_MAX_NUM; i++) {
+            color += CalcDotLight(material, dotLights[i]);
+        }
+        for (int i = 0; i < lightnum.spotlight && i < SPOT_LIGHT_MAX_NUM; i++) {
+            color += CalcSpotLight(material, spotLights[i]);
+        }
+        outColor = vec4(color, 1.0);
     }
-    for (int i = 0; i < lightnum.spotlight && i < SPOT_LIGHT_MAX_NUM; i++) {
-        color += CalcSpotLight(material, spotLights[i]);
-    }
-    outColor = vec4(color, 1.0);
 } 

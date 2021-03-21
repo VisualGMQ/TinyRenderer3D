@@ -13,7 +13,6 @@ Renderer::Renderer(int window_width, int window_height) {
 };
 
 void Renderer::initShaders() {
-    pure_color_program_ = CreateProgram(PureColorProgramName, "shader/pure_color_shader.vert", "shader/pure_color_shader.frag");
     texture_program_ = CreateProgram(TextureProgramName, "shader/tex_shader.vert", "shader/tex_shader.frag");
     shadow_program_ = CreateProgram(ShadowProgramName, "shader/shadow.vert", "shader/empty.frag");
 }
@@ -167,7 +166,6 @@ Renderer::~Renderer() {
 }
 
 void Renderer::destroy() {
-    delete pure_color_program_;
     delete texture_program_;
     delete shadow_program_;
     delete camera_;

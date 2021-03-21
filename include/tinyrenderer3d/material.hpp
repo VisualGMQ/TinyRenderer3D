@@ -23,6 +23,7 @@ struct Material final {
     Texture* normal_texture = nullptr;
     Texture* diffuse_texture = nullptr;
     Texture* specular_texture = nullptr;
+    Texture* emission_texture = nullptr;
 
     void Use(Program* program);
     void DontUse();

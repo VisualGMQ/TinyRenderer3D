@@ -27,6 +27,14 @@ void Material::Use(Program* program) {
     } else {
         GLCall(program->Uniform1i("material.specular_texture_num", 0));
     }
+    if (emission_texture) {
+        GLCall(glActiveTexture(GL_TEXTURE3));
+        emission_texture->UseAsTexture();
+        GLCall(program->Uniform1i("material.emission_texture", 3));
+        GLCall(program->Uniform1i("material.emission_texture_num", 1));
+    } else {
+        GLCall(program->Uniform1i("material.emission_texture_num", 0));
+    }
 
     program->UniformVec3f("material.diffuse", diffuse);
     program->UniformVec3f("material.ambient", ambient);
