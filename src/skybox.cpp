@@ -97,4 +97,12 @@ SkyBox::~SkyBox() {
     unbind();
 }
 
+SkyBox* CreateSkyBox(CubeMap* cubmap) {
+    return new SkyBox(cubmap);
+}
+
+void DestroySkyBox(SkyBox* box) {
+    delete box;
+}
+
 }

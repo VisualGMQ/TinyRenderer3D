@@ -38,25 +38,9 @@ class TestShadow: public TestFramework {
 
     void initLight() {
         lights_.dirlight.SetAmbient(0.5, 0.5, 0.5);
-        lights_.dirlight.SetDirection(0, -1, 0);
+        lights_.dirlight.SetDirection(0, -1, -1);
         lights_.dirlight.SetDiffuse(0.5, 0.5, 0.5);
         lights_.dirlight.SetSpecular(0.5, 0.5, 0.5);
-
-        // DotLight dotlight;
-        // dotlight.SetPosition(1, 1, 1);
-        // dotlight.SetAmbient(0, 0, 0);
-        // dotlight.SetDiffuse(0.55, 0.55, 0.55);
-        // dotlight.SetSpecular(0.55, 0.55, 0.55);
-        // lights_.dotlights.push_back(dotlight);
-
-        // SpotLight spotlight;
-        // spotlight.SetPosition(0, 1, 0);
-        // spotlight.SetDirection(0, -1, 0);
-        // spotlight.SetAmbient(0.8, 0.8, 0.8);
-        // spotlight.SetDiffuse(0.8, 0.8, 0.8);
-        // spotlight.SetSpecular(0.4, 0.4, 0.4);
-        // spotlight.SetParameter(50, 40);
-        // lights_.spotlights.push_back(spotlight);
     }
 
     void initPlane() {
@@ -80,7 +64,6 @@ class TestShadow: public TestFramework {
         plane_.material.diffuse = {0.6, 0.6, 0.6};
         plane_.material.specular = {0.6, 0.6, 0.6};
         plane_.material.shininess = 32;
-        // plane_.material.diffuse_texture = GetRenderer()->GetShadowMap();
     }
 
     void initTextureCube() {

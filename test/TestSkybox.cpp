@@ -23,7 +23,7 @@ class TestSkybox: public TestFramework {
 
     ~TestSkybox() {
         DestroyCubeMap(cubmap_);
-        delete skybox_;
+        DestroySkyBox(skybox_);
     }
 
  private:
@@ -41,7 +41,7 @@ class TestSkybox: public TestFramework {
         datas.positive_z = LoadImage("test_resources/skybox/front.jpg");
 
         cubmap_ = CreateCubeMap(datas);
-        skybox_ = new SkyBox(cubmap_);
+        skybox_ = CreateSkyBox(cubmap_);
 
         DestroyImage(datas.negative_x);
         DestroyImage(datas.negative_y);

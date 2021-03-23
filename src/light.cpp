@@ -18,7 +18,7 @@ void DirectionLight::UniformLightMatrix(Program* program) const {
     if (GetDirection() == Vec3<float>(0, 1, 0) || GetDirection() == Vec3<float>(0, -1, 0)) {
         up = {1, 0, 0};
     }
-    Mat4<float> lightView = glm::lookAt(-GetDirection()*Vec3<float>(6, 6, 6), Vec3<float>(0.0f, 0.0f, 0.0f), up);
+    Mat4<float> lightView = glm::lookAt(-GetDirection()*Vec3<float>(4, 4, 4), Vec3<float>(0.0f, 0.0f, 0.0f), up);
     program->UniformMat4f("lightmatrix", lightProjection*lightView);
 }
 

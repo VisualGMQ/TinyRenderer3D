@@ -43,8 +43,8 @@ class ILight {
     virtual void Apply(Program* program, int idx) const = 0;
 
  private:
-    Color3<float> ambient_ = {1, 1, 1};
-    Color3<float> diffuse_ = {0, 0, 0};
+    Color3<float> ambient_ = {0.5, 0.5, 0.5};
+    Color3<float> diffuse_ = {0.5, 0.5, 0.5};
     Color3<float> specular_ = {0, 0, 0};
 };
 

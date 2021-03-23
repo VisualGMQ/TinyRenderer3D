@@ -25,6 +25,9 @@ class SkyBox: public Drawable {
     void unbind();
 };
 
+SkyBox* CreateSkyBox(CubeMap* cubmap);
+void DestroySkyBox(SkyBox* box);
+
 }
 
 #endif
