@@ -10,16 +10,14 @@ Renderer::Renderer(int window_width, int window_height) {
     initFeatures();
     initDrawSize(window_width, window_height);
 
-    // TODO if shadow_map_'s size are (window_width, window_height)???
-    shadow_map_ = new ShadowMap(1024, 1024);
+    shadow_map_ = new ShadowMap(window_width, window_height);
     camera_ = new Camera;
-
-    stbi_set_flip_vertically_on_load(true);
 };
 
 void Renderer::initShaders() {
     texture_program_ = CreateProgram(TextureProgramName, "shader/tex_shader.vert", "shader/tex_shader.frag");
     shadow_program_ = CreateProgram(ShadowProgramName, "shader/shadow.vert", "shader/empty.frag");
+    skybox_program_ = CreateProgram(SkyboxProgramName, "shader/skybox.vert", "shader/skybox.frag");
 }
 
 void Renderer::initDrawSize(int w, int h) {
@@ -116,41 +114,52 @@ void Renderer::AddObject(Drawable* obj) {
 }
 
 void Renderer::DrawShadowPre() {
-    // TODO when you want use shadow, open it
-    // GLint data[4] = {0};
-    // GLCall(glGetIntegerv(GL_VIEWPORT, data));
-    // Rect<int> viewport = {{data[0], data[1]}, {data[2], data[3]}};
-    // Program* program = UseShadowProgram();
-    // // TODO add more light uniform matrix
-    // lights_.dirlight.UniformLightMatrix(program);
-    // // TODO uniform lightmatrix to program
-    // shadow_map_->Use(viewport);
-    // // TODO uniform lightmatrix to program
+    GLint data[4] = {0};
+    GLCall(glGetIntegerv(GL_VIEWPORT, data));
+    Rect<int> viewport = {{data[0], data[1]}, {data[2], data[3]}};
+    Program* program = UseShadowProgram();
+
+    lights_.dirlight.UniformLightMatrix(program);
+
+    shadow_map_->UseAsShadowMap(viewport);
     for (Drawable* obj: drawables_) {
         obj->DrawForShadow(program);
     }
-    // shadow_map_->DontUse();
+    shadow_map_->DontUse();
 }
 
 void Renderer::Draw() {
-    // DrawShadowPre();
+    if (skybox_) {
+        drawSkyBox();
+    }
+    DrawShadowPre();
+
     GLCall(glActiveTexture(GL_TEXTURE6));
-    shadow_map_->UseAsTarget();
+    shadow_map_->UseAsTexture();
+
     Program* program = UseTextureProgram();
-    // if you want to use shadow, uncomment it
-    // program->Uniform1i("shadow_texture", 6);
+    program->Uniform1i("shadow_texture", 6);
+
     for (Drawable* obj: drawables_) {
         drawOneObj(obj, program);
     }
 }
 
+void Renderer::drawSkyBox() {
+    Mat4<float> view = glm::mat4(glm::mat3(GetCamera()->GetMatrix()));
+    skybox_program_->Use();
+    skybox_program_->UniformMat4f("project", GetProjectMatrix());
+    skybox_program_->UniformMat4f("view", view);
+    skybox_->Draw(skybox_program_);
+}
+
 void Renderer::drawOneObj(Drawable* obj, Program* program) {
-    applyMatrices(program, project_, camera_->GetMatrix());
+    applyMatrices(program, project_);
     applyLights(program, lights_);
     obj->Draw(program);
 }
 
-void Renderer::applyMatrices(Program* program, const Mat4<float>& project, const Mat4<float>& view) {
+void Renderer::applyMatrices(Program* program, const Mat4<float>& project) {
     program->UniformMat4f("project", project_);
     program->UniformMat4f("view", camera_->GetMatrix());
     program->UniformVec3f("viewPos", camera_->GetPosition());
@@ -195,6 +204,7 @@ Renderer::~Renderer() {
 void Renderer::destroy() {
     DestroyProgram(texture_program_);
     DestroyProgram(shadow_program_);
+    DestroyProgram(skybox_program_);
     delete shadow_map_;
     delete camera_;
 }

@@ -17,6 +17,7 @@ class Model: public Drawable {
  public:
     Model() = default;
     Model(const string& obj_filename);
+
     void Load(const string& obj_filename);
 
     void SetPosition(float x, float y, float z);

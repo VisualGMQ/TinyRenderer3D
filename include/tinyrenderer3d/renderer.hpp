@@ -18,6 +18,7 @@
 #include "light.hpp"
 #include "model.hpp"
 #include "shadow_map.hpp"
+#include "skybox.hpp"
 
 namespace tinyrenderer3d {
 
@@ -88,11 +89,8 @@ class Renderer final {
     void SetTarget(Texture* texture);
     void EnablePolygonMode();
     void DisablePolygonMode();
-
-    // FIXME for test
-    ShadowMap* GetShadowMap() {
-        return shadow_map_;
-    }
+    void SetSkyBox(SkyBox* skybox) { skybox_ = skybox; }
+    void RemoveSkyBox() { skybox_ = nullptr; }
 
  private:
     glm::mat4 project_ = glm::mat4(1.0f);
@@ -110,8 +108,10 @@ class Renderer final {
 
     Program* texture_program_ = nullptr;
     Program* shadow_program_ = nullptr;
+    Program* skybox_program_ = nullptr;
 
     ShadowMap* shadow_map_ = nullptr;
+    SkyBox* skybox_ = nullptr;
 
     void unbindBuffers() {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -126,9 +126,10 @@ class Renderer final {
     void initMatrices();
 
     void drawOneObj(Drawable*, Program*);
+    void drawSkyBox();
 
     void applyLights(Program* program, LightSet& lights);
-    void applyMatrices(Program* program, const Mat4<float>& project, const Mat4<float>& view);
+    void applyMatrices(Program* program, const Mat4<float>& project);
 
     void destroy();
 };

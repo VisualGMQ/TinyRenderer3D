@@ -1,4 +1,5 @@
 #include "tinyrenderer3d/texture.hpp"
+#include "tinyrenderer3d/itexture.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -41,14 +42,15 @@ void Texture::DontUse() {
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
-void Texture::UpdateData(unsigned char* data, int w, int h, PixelFormat format) {
+void Texture::UpdateData(const ImageData& data) {
     GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
-    if (format == PIXEL_FORMAT_RGB888) {
-        GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data));
-    } else if (format == PIXEL_FORMAT_RGBA8888) {
-        GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
+    GLsizei w = data.size.w, h = data.size.h;
+    if (data.format == PIXEL_FORMAT_RGB888) {
+        GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data));
+    } else if (data.format == PIXEL_FORMAT_RGBA8888) {
+        GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data));
     } else {
-        Log("Unknown image channels");
+        Log("Unknown image pixel format");
     }
     GLCall(glBindTexture(GL_TEXTURE_2D, 0));
 }
@@ -64,19 +66,10 @@ Texture* CreateTexture(TextureType type, int w, int h) {
 }
 
 Texture* LoadTexture(TextureType type, std::string filename) {
-    int w, h, channels;
-    unsigned char* data = stbi_load(filename.c_str(), &w, &h, &channels, 0);
-    if (!data) {
-        Log("%s can't load", filename.c_str());
-        return nullptr;
-    }
-    Texture* texture = CreateTexture(type, w, h);
-    if (channels == 4) {
-        texture->UpdateData(data, w, h, PIXEL_FORMAT_RGBA8888);
-    } else {
-        texture->UpdateData(data, w, h, PIXEL_FORMAT_RGB888);
-    }
-    stbi_image_free(data);
+    ImageData data = LoadImage(filename);
+    Texture* texture = CreateTexture(type, data.size.w, data.size.h);
+    texture->UpdateData(data);
+    DestroyImage(data);
     return texture;
 }
 

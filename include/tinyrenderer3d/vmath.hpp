@@ -91,6 +91,17 @@ struct Size2d {
     T h;
 };
 
+// FIXME use epsilon to judge: (abs(w-o.w) <= epsilon)
+template <typename T>
+bool operator==(const Size2d<T>& o1, const Size2d<T> &o2) {
+    return o1.w == o2.w && o1.h == o2.h;
+}
+
+template <typename T>
+bool operator!=(const Size2d<T>& o1, const Size2d<T> & o2) {
+    return !(o1 == o2);
+}
+
 template <typename T>
 struct Size3d {
     T w;

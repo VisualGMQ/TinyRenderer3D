@@ -7,8 +7,10 @@ ShadowMap::ShadowMap(int w, int h) {
     GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER));
+    GLfloat borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLCall(glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor));
     GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
 
     GLCall(glGenFramebuffers(1, &fbo_));
@@ -26,7 +28,7 @@ ShadowMap::ShadowMap(int w, int h) {
     unbind();
 }
 
-void ShadowMap::Use(const Rect<int>& old_viewport) {
+void ShadowMap::UseAsShadowMap(const Rect<int>& old_viewport) {
     bind();
     GLCall(glViewport(0, 0, viewport_.w, viewport_.h));
     GLCall(glClear(GL_DEPTH_BUFFER_BIT));
@@ -34,7 +36,7 @@ void ShadowMap::Use(const Rect<int>& old_viewport) {
     old_viewport_ = old_viewport;
 }
 
-void ShadowMap::UseAsTarget() {
+void ShadowMap::UseAsTexture() {
     GLCall(glBindTexture(GL_TEXTURE_2D, tex_));
 }
 

@@ -57,7 +57,6 @@ class TestShadow: public TestFramework {
         // spotlight.SetSpecular(0.4, 0.4, 0.4);
         // spotlight.SetParameter(50, 40);
         // lights_.spotlights.push_back(spotlight);
-        
     }
 
     void initPlane() {
@@ -81,6 +80,7 @@ class TestShadow: public TestFramework {
         plane_.material.diffuse = {0.6, 0.6, 0.6};
         plane_.material.specular = {0.6, 0.6, 0.6};
         plane_.material.shininess = 32;
+        // plane_.material.diffuse_texture = GetRenderer()->GetShadowMap();
     }
 
     void initTextureCube() {

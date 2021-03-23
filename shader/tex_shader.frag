@@ -77,17 +77,20 @@ uniform LightNum lightnum;
 
 uniform vec3 viewPos;
 
-// uniform sampler2D shadow_texture;
+uniform sampler2D shadow_texture;
 
-// not use
-// float CalcShadow(vec4 frag_pos_light_space) {
-//     vec3 proj_coords = frag_pos_light_space.xyz/frag_pos_light_space.w;
-//     proj_coords = proj_coords * 0.5 + 0.5;
-//     float closest_depth = texture(shadow_texture, proj_coords.xy).r;
-//     float current_depth = proj_coords.z;
-//     float shadow = current_depth > closest_depth  ? 1.0 : 0.0;
-//     return shadow;
-// }
+float CalcShadow(vec4 frag_pos_light_space, vec3 normal, vec3 light_dir) {
+    vec3 proj_coords = frag_pos_light_space.xyz/frag_pos_light_space.w;
+    proj_coords = proj_coords * 0.5 + 0.5;
+    if (proj_coords.z > 1.0) {
+        return 0.0;
+    }
+    float closest_depth = texture(shadow_texture, proj_coords.xy).r;
+    float current_depth = proj_coords.z;
+    float bias = max(0.05 * (1.0 - dot(normal, light_dir)), 0.005);
+    float shadow = current_depth - bias > closest_depth  ? 1.0 : 0.0;
+    return shadow;
+}
 
 vec3 CalcNormal() {
     if (material.normal_texture_num == 1) {
@@ -140,7 +143,12 @@ vec3 CalcBasicLight(Material material, LightBase base, vec3 direction, vec3 norm
 }
 
 vec3 CalcDirectionLight(Material material, vec3 normal) {
-    return CalcBasicLight(material, directionLight.base, directionLight.direction, normal);
+    vec3 ambient = CalcBasicLightAmbient(material, directionLight.base.ambient);
+    vec3 diffuse = CalcBasicLightDiffuse(material, directionLight.base.diffuse, directionLight.direction, normal);
+    vec3 specular = CalcBasicLightSpecular(material, directionLight.base.specular, directionLight.direction, normal);
+    float shadow = CalcShadow(fragPosLightSpace, normal, directionLight.direction);
+    vec3 lighting = (ambient+(1.0-shadow)*(diffuse+specular));
+    return lighting;
 }
 
 vec3 CalcDotLight(Material material, DotLight light, vec3 normal) {

@@ -20,10 +20,10 @@ struct Material final {
     // vector<Texture*> diffuse_textures;
     // vector<Texture*> specular_textures;
     // TODO currently we don't support normal texture
-    Texture* normal_texture = nullptr;
-    Texture* diffuse_texture = nullptr;
-    Texture* specular_texture = nullptr;
-    Texture* emission_texture = nullptr;
+    ITexture* normal_texture = nullptr;
+    ITexture* diffuse_texture = nullptr;
+    ITexture* specular_texture = nullptr;
+    ITexture* emission_texture = nullptr;
 
     void Use(Program* program);
     void DontUse();

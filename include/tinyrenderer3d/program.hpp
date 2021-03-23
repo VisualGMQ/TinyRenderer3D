@@ -12,9 +12,9 @@ namespace tinyrenderer3d {
 
 using std::string;
 
-constexpr const char* PureColorProgramName = "purecolor_program";
 constexpr const char* TextureProgramName = "texture_program";
 constexpr const char* ShadowProgramName = "shadow_program";
+constexpr const char* SkyboxProgramName = "skybox_program";
 
 class Program {
  public:

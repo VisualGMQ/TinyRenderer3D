@@ -1,10 +1,14 @@
 #include "tinyrenderer3d/program.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include <stdexcept>
 
 namespace tinyrenderer3d {
 
 Program::Program(string name, Shader& vertex_shader, Shader& frag_shader):name_(name) {
     program_ = glCreateProgram(); 
+    if (program_ == 0) {
+        throw std::runtime_error("program create failed");
+    }
     GLCall(glAttachShader(program_, vertex_shader.GetShaderBuffer()));
     GLCall(glAttachShader(program_, frag_shader.GetShaderBuffer()));
     GLCall(glLinkProgram(program_));

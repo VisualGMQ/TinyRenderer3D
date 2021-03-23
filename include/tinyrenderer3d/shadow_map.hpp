@@ -7,15 +7,16 @@
 #include "vmath.hpp"
 #include "tool.hpp"
 #include "log.hpp"
+#include "itexture.hpp"
 
 namespace tinyrenderer3d {
 
-class ShadowMap {
+class ShadowMap: public ITexture{
  public:
     ShadowMap(int w, int h);
-    void Use(const Rect<int>& old_viewport);
-    void UseAsTarget();
-    void DontUse();
+    void UseAsShadowMap(const Rect<int>& old_viewport);
+    void UseAsTexture() override;
+    void DontUse() override;
     ~ShadowMap();
 
  private:
