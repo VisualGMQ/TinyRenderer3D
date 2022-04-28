@@ -1,14 +1,17 @@
-#include "tinyrenderer3d/tool.hpp"
+#include "tool.hpp"
 
-std::string ErrorCode2Str(GLenum error) {
-    switch (error) {
-        case GL_INVALID_ENUM:                  return "INVALID_ENUM";
-        case GL_INVALID_VALUE:                 return "INVALID_VALUE";
-        case GL_INVALID_OPERATION:             return "INVALID_OPERATION";
-        case GL_STACK_OVERFLOW:                return "STACK_OVERFLOW";
-        case GL_STACK_UNDERFLOW:               return "STACK_UNDERFLOW";
-        case GL_OUT_OF_MEMORY:                 return "OUT_OF_MEMORY";
-        case GL_INVALID_FRAMEBUFFER_OPERATION: return "INVALID_FRAMEBUFFER_OPERATION";
-        default: return std::to_string(error);
+namespace tr3d {
+
+std::vector<char> ReadFile(const char* filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        printf("file %s don't exists\n", filename);
+        return std::vector<char>(); 
     }
+    std::vector<char> result((std::istreambuf_iterator<char>(file)),
+                              std::istreambuf_iterator<char>());
+    file.close();
+    return result;
+}
+
 }

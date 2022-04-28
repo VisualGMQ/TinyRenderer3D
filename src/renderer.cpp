@@ -1,221 +1,572 @@
-#include "tinyrenderer3d/renderer.hpp"
-#include "stb_image.h"
-#include "tinyrenderer3d/program.hpp"
+#include "tr3d/renderer.hpp"
 
-namespace tinyrenderer3d {
+namespace tr3d {
 
-Renderer::Renderer(int window_width, int window_height) {
-    initShaders();
-    initColors();
-    initFeatures();
-    initDrawSize(window_width, window_height);
+vk::Instance Renderer::instance_ = nullptr;
+vk::SurfaceKHR Renderer::surface_ = nullptr;
+vk::PhysicalDevice Renderer::phyDevice_ = nullptr;
+vk::Device Renderer::device_ = nullptr;
+vk::Queue Renderer::presentQueue_ = nullptr;
+vk::Queue Renderer::graphicQueue_ = nullptr;
+vk::PipelineLayout Renderer::layout_;
+vk::Pipeline Renderer::pipeline_ = nullptr;
+vk::RenderPass Renderer::renderPass_ = nullptr;
+vk::SwapchainKHR Renderer::swapchain_ = nullptr;
+vk::CommandBuffer Renderer::cmdBuf_ = nullptr;
+vk::CommandPool Renderer::cmdPool_ = nullptr;
+std::unordered_map<const char*, vk::ShaderModule> Renderer::shaderModules_;
+std::vector<vk::Image> Renderer::images_;
+std::vector<vk::ImageView> Renderer::imageViews_;
+std::vector<vk::Framebuffer> Renderer::frambuffers_;
+vk::Semaphore Renderer::imageAvaliableSemaphore_ = nullptr;
+vk::Semaphore Renderer::renderFinishedSemaphore_ = nullptr;
+vk::Fence Renderer::inFlightFence_ = nullptr;
 
-    shadow_map_ = new ShadowMap(window_width, window_height);
-    camera_ = new Camera;
-};
+SDL_Window* Renderer::window_ = nullptr;
 
-void Renderer::initShaders() {
-    texture_program_ = CreateProgram(TextureProgramName, "shader/tex_shader.vert", "shader/tex_shader.frag");
-    shadow_program_ = CreateProgram(ShadowProgramName, "shader/shadow.vert", "shader/empty.frag");
-    skybox_program_ = CreateProgram(SkyboxProgramName, "shader/skybox.vert", "shader/skybox.frag");
-}
+std::unordered_map<const char*, vk::ShaderModule> shaderModules_;
+Renderer::SwapchainRequireDetails Renderer::swapchainRequiredDetails_;
 
-void Renderer::initDrawSize(int w, int h) {
-    window_size_.w = w;
-    window_size_.h = h;
-    SetViewport(0, 0, w, h);
-    project_ = glm::perspective(glm::radians(45.0f), window_size_.w/static_cast<float>(window_size_.h), 0.1f, 100.0f);
-}
 
-void Renderer::initColors() {
-    clear_color_.r = 0;
-    clear_color_.g = 0;
-    clear_color_.b = 0;
-    clear_color_.a = 255;
+std::vector<const char*> extensionNames = {"VK_KHR_get_physical_device_properties2"};
+std::vector<const char*> layerNames = { "VK_LAYER_KHRONOS_validation" };
 
-    SetFillColorOpacity(255);
-    SetDrawColorOpacity(255);
-}
+void Renderer::Init(SDL_Window* window) {
+    window_ = window;
 
-void Renderer::initFeatures() {
-    GLCall(glEnable(GL_BLEND));
-    GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
-    GLCall(glEnable(GL_STENCIL_TEST));
-    GLCall(glEnable(GL_DEPTH_TEST));
-    EnableMultisample();
-    EnableFaceCull(GL_BACK, true);
-}
+    unsigned int count;
+    SDL_Vulkan_GetInstanceExtensions(window_, &count, nullptr);
+    size_t size = extensionNames.size();
+    extensionNames.resize(count + extensionNames.size());
+    SDL_Vulkan_GetInstanceExtensions(window_, &count, extensionNames.data() + size);
 
-void Renderer::EnableMultisample() {
-    GLCall(glEnable(GL_MULTISAMPLE));
-}
-
-void Renderer::DisableMultisample() {
-    GLCall(glDisable(GL_MULTISAMPLE));
-}
-
-void Renderer::EnableFaceCull(GLenum face, bool front_ccw) {
-    GLCall(glEnable(GL_CULL_FACE));
-    GLCall(glCullFace(face));
-    if (front_ccw) {
-        GLCall(glFrontFace(GL_CCW));
+    if (!(instance_ = createInstance())) {
+        LOG("create instance failed");
     } else {
-        GLCall(glFrontFace(GL_CW));
+        LOG("create instance OK!");
     }
-}
 
-void Renderer::DisableFaceCull() {
-    GLCall(glDisable(GL_CULL_FACE));
-}
-
-void Renderer::SetClearColor(const Color& color) {
-    SetClearColor(color.r, color.g, color.b, color.a);
-}
-
-void Renderer::SetClearColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    GLCall(glClearColor(r/255.0, g/255.0, b/255.0, a/255.0));
-}
-
-void Renderer::SetDrawColor(uint8_t r, uint8_t g, uint8_t b) {
-    draw_color_.r = r;
-    draw_color_.g = g;
-    draw_color_.b = b;
-}
-
-void Renderer::SetDrawColorOpacity(uint8_t opacity) {
-    draw_color_.a = opacity;
-}
-
-void Renderer::SetFillColor(uint8_t r, uint8_t g, uint8_t b) {
-    fill_color_.r = r;
-    fill_color_.g = g;
-    fill_color_.b = b;
-}
-
-void Renderer::SetFillColorOpacity(uint8_t opacity) {
-    fill_color_.a = opacity;
-}
-
-void Renderer::SetViewport(int x, int y, int w, int h) {
-    GLCall(glViewport(0, 0, w, h));
-}
-
-void Renderer::Clear() {
-    GLCall(glClear(GL_COLOR_BUFFER_BIT|GL_STENCIL_BUFFER_BIT|GL_DEPTH_BUFFER_BIT));
-}
-
-void Renderer::SetPointSize(uint32_t size) {
-    GLCall(glPointSize(size));
-}
-
-void Renderer::AddObject(Drawable* obj) {
-    drawables_.push_back(obj);
-}
-
-void Renderer::DrawShadowPre() {
-    GLint data[4] = {0};
-    GLCall(glGetIntegerv(GL_VIEWPORT, data));
-    Rect<int> viewport = {{data[0], data[1]}, {data[2], data[3]}};
-    Program* program = UseShadowProgram();
-
-    lights_.dirlight.UniformLightMatrix(program);
-
-    shadow_map_->UseAsShadowMap(viewport);
-    for (Drawable* obj: drawables_) {
-        obj->DrawForShadow(program);
-    }
-    shadow_map_->DontUse();
-}
-
-void Renderer::Draw() {
-    if (skybox_) {
-        drawSkyBox();
-    }
-    DrawShadowPre();
-
-    GLCall(glActiveTexture(GL_TEXTURE6));
-    shadow_map_->UseAsTexture();
-
-    Program* program = UseTextureProgram();
-    program->Uniform1i("shadow_texture", 6);
-
-    for (Drawable* obj: drawables_) {
-        drawOneObj(obj, program);
-    }
-}
-
-void Renderer::drawSkyBox() {
-    Mat4<float> view = glm::mat4(glm::mat3(GetCamera()->GetMatrix()));
-    skybox_program_->Use();
-    skybox_program_->UniformMat4f("project", GetProjectMatrix());
-    skybox_program_->UniformMat4f("view", view);
-    skybox_->Draw(skybox_program_);
-}
-
-void Renderer::drawOneObj(Drawable* obj, Program* program) {
-    applyMatrices(program, project_);
-    applyLights(program, lights_);
-    obj->Draw(program);
-}
-
-void Renderer::applyMatrices(Program* program, const Mat4<float>& project) {
-    program->UniformMat4f("project", project_);
-    program->UniformMat4f("view", camera_->GetMatrix());
-    program->UniformVec3f("viewPos", camera_->GetPosition());
-}
-
-void Renderer::applyLights(Program* program, LightSet& lights) {
-    program->Uniform1i("lightnum.dotlight", lights.dotlights.size());
-    program->Uniform1i("lightnum.spotlight", lights.spotlights.size());
-
-    lights.dirlight.Apply(program, 0);
-    for (int i = 0; i < lights.dotlights.size(); i++) {
-        lights.dotlights.at(i).Apply(program, i);
-    }
-    for (int i = 0; i < lights.spotlights.size(); i++) {
-        lights.spotlights.at(i).Apply(program, i);
-    }
-}
-
-void Renderer::SetTarget(Texture* texture) {
-    if (texture) {
-        is_at_default_framebuffer = false;
-        GLCall(glBindFramebuffer(GL_FRAMEBUFFER, texture->fbo_));
-        SetViewport(0, 0, texture->GetSize().w, texture->GetSize().h);
+    if (!(surface_ = createSurface())) {
+        LOG("create surface failed");
     } else {
-        is_at_default_framebuffer = true;
-        GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-        SetViewport(0, 0, window_size_.w, window_size_.h);
+        LOG("create surface OK!");
+    }
+
+    if ((phyDevice_ = pickupPhysicalDevice())) {
+        LOG("pickup device %s OK", phyDevice_.getProperties().deviceName.data());
+    } else {
+        LOG("pickup physical device failed");
+    }
+
+    auto queueFamily = queryQueueFamily();
+    LOG("graphic family queue index = %d", queueFamily.graphicQueueIdx.value());
+    LOG("present family queue index = %d", queueFamily.presentQueueIdx.value());
+
+    if ((device_ = createDevice(queueFamily))) {
+        LOG("create logical device OK");
+    } else {
+        LOG("create logical device failed");
+    }
+
+    auto queues = getQueues(queueFamily);
+    graphicQueue_ = queues.first;
+    presentQueue_ = queues.second;
+    auto supportDetails = querySwapchainSupport();
+    swapchainRequiredDetails_ = querySwapchainRequiredDetails(supportDetails);
+    if ((swapchain_ = createSwapchain(supportDetails, swapchainRequiredDetails_, queueFamily))) {
+        LOG("swapchain create OK");
+    } else {
+        LOG("swapchain create failed");
+    }
+
+    images_ = getImages();
+    LOG("swapchain has %lu images", images_.size());
+
+    imageViews_ = createImageViews(swapchainRequiredDetails_.format.format);
+
+    if ((renderPass_ = createRenderPass())) {
+        LOG("render pass create OK");
+    } else {
+        LOG("render pass create failed");
+    }
+
+    frambuffers_ = createFramebuffers();
+
+    if ((cmdPool_ = createCmdPool(queueFamily))) {
+        LOG("graphic command pool create OK");
+    } else {
+        LOG("graphic command pool create failed");
+    }
+
+    if ((cmdBuf_ = createCmdBuffer())) {
+        LOG("create command buffer OK");
+    } else {
+        LOG("create command buffer failed");
+    }
+
+    auto tup = createSemaphoreAndFence();
+    imageAvaliableSemaphore_ = std::get<0>(tup);
+    renderFinishedSemaphore_ = std::get<1>(tup);
+    inFlightFence_ = std::get<2>(tup);
+}
+
+vk::Instance Renderer::createInstance() {
+    vk::InstanceCreateInfo info;
+    info.setPEnabledLayerNames(layerNames);
+    info.setPEnabledExtensionNames(extensionNames);
+
+    std::cout << "enabled extensions:" << std::endl;
+    for (auto& ext : extensionNames) {
+        std::cout << "\t" << ext << std::endl;
+    }
+
+    std::cout << "enabled layers:" << std::endl;
+    for (auto& layer : layerNames) {
+        std::cout << "\t" << layer << std::endl;
+    }
+
+    return vk::createInstance(info);
+}
+
+vk::SurfaceKHR Renderer::createSurface() {
+    VkSurfaceKHR surface;
+    SDL_Vulkan_CreateSurface(window_, instance_, &surface);
+    return surface;
+}
+
+vk::PhysicalDevice Renderer::pickupPhysicalDevice() {
+    return instance_.enumeratePhysicalDevices()[0];
+}
+
+Renderer::QueueFamily Renderer::queryQueueFamily() {
+    auto properties = phyDevice_.getQueueFamilyProperties();
+    QueueFamily info;
+    for (size_t i = 0; i < properties.size(); i++) {
+        auto& property = properties[i];
+        if (property.queueFlags | vk::QueueFlagBits::eGraphics) {
+            info.graphicQueueIdx = i;
+            if (phyDevice_.getSurfaceSupportKHR(i, surface_)) {
+                info.presentQueueIdx = i;
+            }
+            if (info.presentQueueIdx && info.graphicQueueIdx) {
+                break;
+            }
+        }
+    }
+    return info;
+}
+
+vk::Device Renderer::createDevice(Renderer::QueueFamily queueFamily) {
+    std::unordered_set<std::uint32_t> families = {queueFamily.graphicQueueIdx.value(), queueFamily.presentQueueIdx.value()};
+    std::vector<vk::DeviceQueueCreateInfo> createInfos;
+    
+    for (auto& index : families) {
+        vk::DeviceQueueCreateInfo info;
+        std::array<float, 1> priorities = {1.0};
+        info.setQueueFamilyIndex(index);
+        info.setQueueCount(1);
+        info.setQueuePriorities(priorities);
+
+        createInfos.push_back(info);
+    }
+
+    std::array extensionNames = {"VK_KHR_portability_subset", VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+    vk::DeviceCreateInfo info;
+    info.setQueueCreateInfos(createInfos);
+    info.setPEnabledExtensionNames(extensionNames);
+
+    return phyDevice_.createDevice(info);
+}
+
+std::pair<vk::Queue, vk::Queue> Renderer::getQueues(QueueFamily queueFamily) {
+    return {device_.getQueue(queueFamily.graphicQueueIdx.value(), 0),
+            device_.getQueue(queueFamily.presentQueueIdx.value(), 0)};
+}
+
+Renderer::SwapchainSupportDetails Renderer::querySwapchainSupport() {
+    SwapchainSupportDetails details;
+    details.formats = phyDevice_.getSurfaceFormatsKHR(surface_);
+    details.presentModes = phyDevice_.getSurfacePresentModesKHR(surface_);
+    details.capabilities = phyDevice_.getSurfaceCapabilitiesKHR(surface_);
+    return details;
+}
+
+vk::SurfaceFormatKHR Renderer::chooseSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& formats) {
+    for (auto& format : formats) {
+        if ((format.format == vk::Format::eR8G8B8A8Srgb ||
+            format.format == vk::Format::eB8G8R8A8Srgb) &&
+            format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+            return format;
+    }
+    return formats[0];
+}
+
+vk::PresentModeKHR Renderer::choosePresentMode(const std::vector<vk::PresentModeKHR>& modes) {
+    for (auto& mode : modes) {
+        if (mode == vk::PresentModeKHR::eMailbox) {
+            return mode;
+        }
+    }
+    return vk::PresentModeKHR::eFifo;
+}
+
+vk::Extent2D Renderer::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities) {
+    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+        return capabilities.currentExtent;
+    } else {
+        int w, h;
+        SDL_GetWindowSize(window_, &w, &h);
+        vk::Extent2D extent;
+        extent.width = std::clamp(static_cast<uint32_t>(w),
+                                  capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        extent.height = std::clamp(static_cast<uint32_t>(h),
+                                   capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+        return extent;
     }
 }
 
-void Renderer::EnablePolygonMode() {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-}
-void Renderer::DisablePolygonMode() {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-}
-
-Renderer::~Renderer() {
-    destroy();
+Renderer::SwapchainRequireDetails Renderer::querySwapchainRequiredDetails(const SwapchainSupportDetails& swapchainDetails) {
+    SwapchainRequireDetails details;
+    details.extent = chooseSwapExtent(swapchainDetails.capabilities);
+    details.format = chooseSurfaceFormat(swapchainDetails.formats);
+    details.presentMode = choosePresentMode(swapchainDetails.presentModes);
+    return details;
 }
 
-void Renderer::destroy() {
-    DestroyProgram(texture_program_);
-    DestroyProgram(shadow_program_);
-    DestroyProgram(skybox_program_);
-    delete shadow_map_;
-    delete camera_;
+vk::SwapchainKHR Renderer::createSwapchain(const SwapchainSupportDetails& supportDetails, const SwapchainRequireDetails& details, const QueueFamily& queueFamily) {
+    uint32_t imageCount = supportDetails.capabilities.minImageCount + 1;
+    if (supportDetails.capabilities.maxImageCount > 0 &&
+        imageCount > supportDetails.capabilities.maxImageCount) {
+        imageCount = supportDetails.capabilities.maxImageCount;
+    }
+
+    vk::SwapchainCreateInfoKHR info;
+    info.setSurface(surface_);
+    info.setMinImageCount(imageCount);
+    info.setImageArrayLayers(1);
+    info.setImageExtent(details.extent);
+    info.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment);
+    info.setMinImageCount(2);
+    info.setPreTransform(supportDetails.capabilities.currentTransform);
+    info.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque);
+    info.setPresentMode(details.presentMode);
+    info.setImageFormat(details.format.format);
+    info.setImageColorSpace(details.format.colorSpace);
+    info.setClipped(true);
+
+    // NOTE what about the sharing mode???
+    if (queueFamily.graphicQueueIdx.value() != queueFamily.presentQueueIdx.value()) {
+        info.setImageSharingMode(vk::SharingMode::eConcurrent);
+        info.setQueueFamilyIndexCount(2);
+        info.setQueueFamilyIndices(std::array<uint32_t, 2>({queueFamily.presentQueueIdx.value(),
+                                                            queueFamily.graphicQueueIdx.value()}));
+    } else {
+        info.setImageSharingMode(vk::SharingMode::eExclusive);
+        info.setQueueFamilyIndexCount(0);
+        info.setQueueFamilyIndices(nullptr);
+    }
+
+    return device_.createSwapchainKHR(info);
 }
 
-Renderer* CreateRenderer(int window_width, int window_height) {
-    Renderer* render = new Renderer(window_width, window_height);
-    return render;
+void Renderer::InitPipeline(vk::ShaderModule vertShader, vk::ShaderModule fragShader) {
+    if (!vertShader || !fragShader) {
+        LOG("shader is nullptr");
+    }
+
+    // vertex input
+    vk::PipelineVertexInputStateCreateInfo vertexInputStateInfo;
+
+    // vertex assmebly
+    vk::PipelineInputAssemblyStateCreateInfo inputAsmInfo;
+    inputAsmInfo.setTopology(vk::PrimitiveTopology::eTriangleList);
+    inputAsmInfo.setPrimitiveRestartEnable(false);
+
+    // viewport transform and clip
+    vk::PipelineViewportStateCreateInfo viewportInfo;
+    int w, h;
+    SDL_GetWindowSize(window_, &w, &h);
+    vk::Viewport viewport(0, 0, w, h, 0, 1);
+    vk::Rect2D scissor({0, 0}, swapchainRequiredDetails_.extent);
+    viewportInfo.setViewports(viewport);
+    viewportInfo.setScissors(scissor);
+
+    // rasterization
+    vk::PipelineRasterizationStateCreateInfo rastInfo;
+    rastInfo.setLineWidth(1);
+    rastInfo.setFrontFace(vk::FrontFace::eCounterClockwise);
+    rastInfo.setCullMode(vk::CullModeFlagBits::eFront);
+    rastInfo.setPolygonMode(vk::PolygonMode::eFill);
+    rastInfo.setDepthClampEnable(false);
+    rastInfo.setDepthBiasEnable(false);
+    rastInfo.setRasterizerDiscardEnable(false);
+
+    // multisampling
+    vk::PipelineMultisampleStateCreateInfo multisampInfo;
+    multisampInfo.setSampleShadingEnable(false);
+    multisampInfo.setMinSampleShading(1);
+    multisampInfo.setRasterizationSamples(vk::SampleCountFlagBits::e1);
+
+    // depth test, stencil test, alpha test
+
+    // blend  NOTE: understand this
+    vk::PipelineColorBlendAttachmentState blendState;
+    blendState.setBlendEnable(false);
+    blendState.setColorWriteMask(vk::ColorComponentFlagBits::eA | vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB);
+    vk::PipelineColorBlendStateCreateInfo blendCreateInfo;
+    blendCreateInfo.setAttachments(blendState);
+    blendCreateInfo.setLogicOpEnable(false);
+
+    // pipeline layout(uniform values)
+    vk::PipelineLayoutCreateInfo layoutInfo;
+    layout_ = device_.createPipelineLayout(layoutInfo);
+
+    // init shader stages
+    std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStageCreateInfo;
+    shaderStageCreateInfo[0].setModule(vertShader);
+    shaderStageCreateInfo[0].setPName("main");
+    shaderStageCreateInfo[0].setStage(vk::ShaderStageFlagBits::eVertex);
+    shaderStageCreateInfo[1].setModule(fragShader);
+    shaderStageCreateInfo[1].setPName("main");
+    shaderStageCreateInfo[1].setStage(vk::ShaderStageFlagBits::eFragment);
+
+    vk::GraphicsPipelineCreateInfo info;
+    info.setStages(shaderStageCreateInfo);
+
+    info.setPVertexInputState(&vertexInputStateInfo);
+    info.setPInputAssemblyState(&inputAsmInfo);
+    info.setPViewportState(&viewportInfo);
+    info.setPRasterizationState(&rastInfo);
+    info.setPMultisampleState(&multisampInfo);
+    info.setPDepthStencilState(nullptr);
+    info.setPColorBlendState(&blendCreateInfo);
+    info.setLayout(layout_);
+    info.setRenderPass(renderPass_);
+    info.setSubpass(0);
+    info.setBasePipelineIndex(-1);
+
+    auto result = device_.createGraphicsPipeline(nullptr, info);
+    if (result.result != vk::Result::eSuccess) {
+        LOG("create graphics pipeline failed");
+        pipeline_ = nullptr;
+    } else {
+        pipeline_ = result.value;
+    }
 }
 
-void DestroyRenderer(Renderer* render) {
-    delete render;
+std::vector<vk::Image> Renderer::getImages() {
+    return device_.getSwapchainImagesKHR(swapchain_);
 }
 
-};
+std::vector<vk::ImageView> Renderer::createImageViews(vk::Format format) {
+    std::vector<vk::ImageView> imageViews(images_.size()); 
+    for (size_t i = 0; i < images_.size(); i++) {
+        vk::ImageViewCreateInfo info;
+        info.setImage(images_[i]);
+        info.setViewType(vk::ImageViewType::e2D);
+        info.setFormat(format);
+        vk::ComponentMapping mapping;
+        mapping.setA(vk::ComponentSwizzle::eIdentity);
+        mapping.setR(vk::ComponentSwizzle::eIdentity);
+        mapping.setG(vk::ComponentSwizzle::eIdentity);
+        mapping.setB(vk::ComponentSwizzle::eIdentity);
+        info.setComponents(mapping);
+        vk::ImageSubresourceRange range;
+        range.setAspectMask(vk::ImageAspectFlagBits::eColor);
+        range.setBaseMipLevel(0);
+        range.setBaseArrayLayer(0);
+        range.setLayerCount(1);
+        range.setLevelCount(1);
+        info.setSubresourceRange(range);
+
+        imageViews[i] = device_.createImageView(info);
+    }
+    return imageViews;
+}
+
+vk::RenderPass Renderer::createRenderPass() {
+    vk::AttachmentDescription colorAttachment;
+    colorAttachment.setFormat(swapchainRequiredDetails_.format.format);
+    colorAttachment.setLoadOp(vk::AttachmentLoadOp::eClear);
+    colorAttachment.setStoreOp(vk::AttachmentStoreOp::eStore);
+    colorAttachment.setSamples(vk::SampleCountFlagBits::e1);
+    colorAttachment.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
+    colorAttachment.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
+    colorAttachment.setInitialLayout(vk::ImageLayout::eUndefined);
+    colorAttachment.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
+
+    vk::AttachmentReference colorAttachmentRef;
+    colorAttachmentRef.setAttachment(0);
+    colorAttachmentRef.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+
+    vk::SubpassDescription subpassDescription;
+    subpassDescription.setColorAttachments(std::array<vk::AttachmentReference, 1>({colorAttachmentRef}));
+
+    vk::SubpassDependency dependency;
+    dependency.setSrcSubpass(VK_SUBPASS_EXTERNAL);
+    dependency.setDstSubpass(0);
+    dependency.setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+    dependency.setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+    dependency.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentWrite);
+
+    vk::RenderPassCreateInfo info;
+    info.setAttachments(std::array<vk::AttachmentDescription, 1>({colorAttachment}));
+    info.setSubpasses(std::array<vk::SubpassDescription, 1>({subpassDescription}));
+    info.setDependencies(std::array<vk::SubpassDependency, 1>{dependency});
+
+    return device_.createRenderPass(info);
+}
+
+std::vector<vk::Framebuffer> Renderer::createFramebuffers() {
+    std::vector<vk::Framebuffer> buffers(imageViews_.size());
+
+    for (size_t i = 0; i < imageViews_.size(); i++) {
+        vk::FramebufferCreateInfo info;
+        info.setAttachments(std::array<vk::ImageView, 1>({imageViews_[i]}));
+        info.setRenderPass(renderPass_);
+        info.setLayers(1);
+        info.setWidth(swapchainRequiredDetails_.extent.width);
+        info.setHeight(swapchainRequiredDetails_.extent.height);
+
+        buffers[i] = device_.createFramebuffer(info);
+        if (!buffers[i]) {
+            LOG("create framebuffer failed");
+        }
+    }
+    return buffers;
+}
+
+vk::CommandPool Renderer::createCmdPool(const QueueFamily& queueFamily) {
+    vk::CommandPoolCreateInfo info;
+    info.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+    info.setQueueFamilyIndex(queueFamily.graphicQueueIdx.value());
+
+    return device_.createCommandPool(info);
+}
+
+vk::CommandBuffer Renderer::createCmdBuffer() {
+    vk::CommandBufferAllocateInfo info;
+    info.setCommandBufferCount(1);
+    info.setCommandPool(cmdPool_);
+    info.setLevel(vk::CommandBufferLevel::ePrimary);
+
+    return device_.allocateCommandBuffers(info)[0];
+}
+
+void Renderer::recordCmdBuffer(uint32_t imageIdx) {
+    vk::CommandBufferBeginInfo beginInfo;
+
+    // begin record command
+    cmdBuf_.begin(beginInfo); {
+        vk::RenderPassBeginInfo renderPassBeginInfo;
+        renderPassBeginInfo.setRenderPass(renderPass_);
+        renderPassBeginInfo.setRenderArea(vk::Rect2D({0, 0}, swapchainRequiredDetails_.extent));
+
+        vk::ClearColorValue value(std::array<float, 4>{0.1, 0.1, 0.1, 1});
+        vk::ClearValue clearValue(value);
+
+        renderPassBeginInfo.setClearValues(std::array<vk::ClearValue, 1>{value});
+        renderPassBeginInfo.setFramebuffer(frambuffers_[imageIdx]);
+        cmdBuf_.beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline); {
+            cmdBuf_.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
+            cmdBuf_.draw(3, 1, 0, 0);
+        } cmdBuf_.endRenderPass();
+    } cmdBuf_.end();
+}
+
+std::tuple<vk::Semaphore, vk::Semaphore, vk::Fence> Renderer::createSemaphoreAndFence() {
+    vk::SemaphoreCreateInfo semInfo;
+    auto sem1 = device_.createSemaphore(semInfo);
+    auto sem2 = device_.createSemaphore(semInfo);
+
+    vk::FenceCreateInfo fenceInfo;
+    fenceInfo.setFlags(::vk::FenceCreateFlagBits::eSignaled);
+    auto fence = device_.createFence(fenceInfo);
+
+    return {sem1, sem2, fence};
+}
+
+void Renderer::Quit() {
+    device_.destroySemaphore(imageAvaliableSemaphore_);
+    device_.destroySemaphore(renderFinishedSemaphore_);
+    device_.destroyFence(inFlightFence_);
+
+    device_.freeCommandBuffers(cmdPool_, 1, &cmdBuf_);
+    device_.destroyCommandPool(cmdPool_);
+    for (auto& buffer : frambuffers_) {
+        device_.destroyFramebuffer(buffer);
+    }
+    device_.destroyPipeline(pipeline_);
+    device_.destroyRenderPass(renderPass_);
+    for (auto& imageView : imageViews_) {
+        device_.destroyImageView(imageView);
+    }
+    device_.destroySwapchainKHR(swapchain_);
+    device_.destroyPipelineLayout(layout_);
+    for (auto& shaderModule : shaderModules_) {
+        device_.destroyShaderModule(shaderModule.second);
+    }
+    device_.destroy();
+    instance_.destroySurfaceKHR(surface_);
+    instance_.destroy();
+}
+    static std::pair<vk::Semaphore, vk::Semaphore> createSemaphores();
+
+vk::ShaderModule Renderer::CreateShaderModule(const char* name, const std::vector<char>& code) {
+    if (shaderModules_.find(name) != shaderModules_.end()) {
+        LOG("shader module %s already exists", name);
+        return nullptr;
+    }
+
+    vk::ShaderModuleCreateInfo info;
+    info.pCode = (const uint32_t*)code.data();
+    info.codeSize = code.size();
+
+    auto shaderModule = device_.createShaderModule(info);
+        shaderModules_[name] = shaderModule;
+    return shaderModule;
+}
+
+void Renderer::DrawFrame() {
+    std::array<vk::Fence, 1> fences{inFlightFence_};
+    if (device_.waitForFences(fences, true, std::numeric_limits<uint64_t>::max()) != vk::Result::eSuccess) {
+        LOG("wait fence failed");
+    }
+    device_.resetFences(fences);
+
+    uint32_t imageIndex;
+    auto result = device_.acquireNextImageKHR(swapchain_, std::numeric_limits<uint64_t>::max(), imageAvaliableSemaphore_);
+    if (result.result == vk::Result::eSuccess) {
+        imageIndex = result.value;
+    } else {
+        LOG("acquireNextImage failed");
+    }
+
+    cmdBuf_.reset();
+    recordCmdBuffer(imageIndex);
+
+    vk::SubmitInfo submitInfo;
+    submitInfo.setWaitSemaphores(std::array<vk::Semaphore, 1>{imageAvaliableSemaphore_});
+    vk::PipelineStageFlags waitStageFlags[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+    submitInfo.setPWaitDstStageMask(waitStageFlags);
+    submitInfo.setSignalSemaphores(std::array<vk::Semaphore, 1>{renderFinishedSemaphore_});
+    submitInfo.setCommandBuffers(std::array<vk::CommandBuffer, 1>{cmdBuf_});
+
+    graphicQueue_.submit(submitInfo, inFlightFence_);
+
+    vk::PresentInfoKHR presentInfo;    
+    presentInfo.setSwapchains(std::array<vk::SwapchainKHR, 1>{swapchain_});
+    presentInfo.setWaitSemaphores(std::array<vk::Semaphore, 1>{renderFinishedSemaphore_});
+    presentInfo.setImageIndices(std::array<uint32_t, 1>{imageIndex});
+    
+    if (presentQueue_.presentKHR(presentInfo) != vk::Result::eSuccess) {
+        LOG("present failed");
+    }
+}
+
+void Renderer::WaitIdle() {
+    device_.waitIdle();
+}
+
+}
