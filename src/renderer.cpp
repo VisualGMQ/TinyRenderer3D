@@ -22,11 +22,15 @@ vk::Semaphore Renderer::imageAvaliableSemaphore_ = nullptr;
 vk::Semaphore Renderer::renderFinishedSemaphore_ = nullptr;
 vk::Fence Renderer::inFlightFence_ = nullptr;
 
+vk::ShaderModule Renderer::vertexShader_ = nullptr;
+vk::ShaderModule Renderer::fragShader_ = nullptr;
+
 SDL_Window* Renderer::window_ = nullptr;
 
 std::unordered_map<const char*, vk::ShaderModule> shaderModules_;
 Renderer::SwapchainRequireDetails Renderer::swapchainRequiredDetails_;
-
+Renderer::SwapchainSupportDetails Renderer::swapchainSupportDetails_;
+Renderer::QueueFamily Renderer::queueFamily_;
 
 std::vector<const char*> extensionNames = {"VK_KHR_get_physical_device_properties2"};
 std::vector<const char*> layerNames = { "VK_LAYER_KHRONOS_validation" };
@@ -58,22 +62,22 @@ void Renderer::Init(SDL_Window* window) {
         LOG("pickup physical device failed");
     }
 
-    auto queueFamily = queryQueueFamily();
-    LOG("graphic family queue index = %d", queueFamily.graphicQueueIdx.value());
-    LOG("present family queue index = %d", queueFamily.presentQueueIdx.value());
+    queueFamily_ = queryQueueFamily();
+    LOG("graphic family queue index = %d", queueFamily_.graphicQueueIdx.value());
+    LOG("present family queue index = %d", queueFamily_.presentQueueIdx.value());
 
-    if ((device_ = createDevice(queueFamily))) {
+    if ((device_ = createDevice(queueFamily_))) {
         LOG("create logical device OK");
     } else {
         LOG("create logical device failed");
     }
 
-    auto queues = getQueues(queueFamily);
+    auto queues = getQueues(queueFamily_);
     graphicQueue_ = queues.first;
     presentQueue_ = queues.second;
-    auto supportDetails = querySwapchainSupport();
-    swapchainRequiredDetails_ = querySwapchainRequiredDetails(supportDetails);
-    if ((swapchain_ = createSwapchain(supportDetails, swapchainRequiredDetails_, queueFamily))) {
+    swapchainSupportDetails_ = querySwapchainSupport();
+    swapchainRequiredDetails_ = querySwapchainRequiredDetails(swapchainSupportDetails_);
+    if ((swapchain_ = createSwapchain(swapchainSupportDetails_, swapchainRequiredDetails_, queueFamily_))) {
         LOG("swapchain create OK");
     } else {
         LOG("swapchain create failed");
@@ -92,7 +96,7 @@ void Renderer::Init(SDL_Window* window) {
 
     frambuffers_ = createFramebuffers();
 
-    if ((cmdPool_ = createCmdPool(queueFamily))) {
+    if ((cmdPool_ = createCmdPool(queueFamily_))) {
         LOG("graphic command pool create OK");
     } else {
         LOG("graphic command pool create failed");
@@ -247,7 +251,6 @@ vk::SwapchainKHR Renderer::createSwapchain(const SwapchainSupportDetails& suppor
     info.setImageArrayLayers(1);
     info.setImageExtent(details.extent);
     info.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment);
-    info.setMinImageCount(2);
     info.setPreTransform(supportDetails.capabilities.currentTransform);
     info.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque);
     info.setPresentMode(details.presentMode);
@@ -255,7 +258,6 @@ vk::SwapchainKHR Renderer::createSwapchain(const SwapchainSupportDetails& suppor
     info.setImageColorSpace(details.format.colorSpace);
     info.setClipped(true);
 
-    // NOTE what about the sharing mode???
     if (queueFamily.graphicQueueIdx.value() != queueFamily.presentQueueIdx.value()) {
         info.setImageSharingMode(vk::SharingMode::eConcurrent);
         info.setQueueFamilyIndexCount(2);
@@ -274,6 +276,9 @@ void Renderer::InitPipeline(vk::ShaderModule vertShader, vk::ShaderModule fragSh
     if (!vertShader || !fragShader) {
         LOG("shader is nullptr");
     }
+
+    vertexShader_ = vertShader;
+    fragShader_ = fragShader;
 
     // vertex input
     vk::PipelineVertexInputStateCreateInfo vertexInputStateInfo;
@@ -318,7 +323,7 @@ void Renderer::InitPipeline(vk::ShaderModule vertShader, vk::ShaderModule fragSh
     blendCreateInfo.setAttachments(blendState);
     blendCreateInfo.setLogicOpEnable(false);
 
-    // pipeline layout(uniform values)
+    // pipeline layout(uniform values and constant values)
     vk::PipelineLayoutCreateInfo layoutInfo;
     layout_ = device_.createPipelineLayout(layoutInfo);
 
@@ -492,26 +497,19 @@ void Renderer::Quit() {
     device_.destroySemaphore(renderFinishedSemaphore_);
     device_.destroyFence(inFlightFence_);
 
-    device_.freeCommandBuffers(cmdPool_, 1, &cmdBuf_);
-    device_.destroyCommandPool(cmdPool_);
-    for (auto& buffer : frambuffers_) {
-        device_.destroyFramebuffer(buffer);
-    }
-    device_.destroyPipeline(pipeline_);
-    device_.destroyRenderPass(renderPass_);
-    for (auto& imageView : imageViews_) {
-        device_.destroyImageView(imageView);
-    }
-    device_.destroySwapchainKHR(swapchain_);
-    device_.destroyPipelineLayout(layout_);
+    cleanupSwapchain();
+
     for (auto& shaderModule : shaderModules_) {
         device_.destroyShaderModule(shaderModule.second);
     }
+
+    device_.freeCommandBuffers(cmdPool_, 1, &cmdBuf_);
+    device_.destroyCommandPool(cmdPool_);
+    
     device_.destroy();
     instance_.destroySurfaceKHR(surface_);
     instance_.destroy();
 }
-    static std::pair<vk::Semaphore, vk::Semaphore> createSemaphores();
 
 vk::ShaderModule Renderer::CreateShaderModule(const char* name, const std::vector<char>& code) {
     if (shaderModules_.find(name) != shaderModules_.end()) {
@@ -565,8 +563,37 @@ void Renderer::DrawFrame() {
     }
 }
 
+void Renderer::cleanupSwapchain() {
+    for (auto& buffer : frambuffers_) {
+        device_.destroyFramebuffer(buffer);
+    }
+    device_.destroyPipelineLayout(layout_);
+    device_.destroyPipeline(pipeline_);
+    device_.destroyRenderPass(renderPass_);
+    for (auto& imageView : imageViews_) {
+        device_.destroyImageView(imageView);
+    }
+    device_.destroySwapchainKHR(swapchain_);
+}
+
+
 void Renderer::WaitIdle() {
     device_.waitIdle();
+}
+
+void Renderer::OnResize(int w, int h) {
+    device_.waitIdle();
+    swapchainRequiredDetails_.extent.width = w;
+    swapchainRequiredDetails_.extent.height = h;
+
+    cleanupSwapchain();
+
+    swapchain_ = createSwapchain(swapchainSupportDetails_, swapchainRequiredDetails_, queueFamily_);
+    images_ = getImages();
+    imageViews_ = createImageViews(swapchainRequiredDetails_.format.format);
+    renderPass_ = createRenderPass();
+    frambuffers_ = createFramebuffers();
+    InitPipeline(vertexShader_, fragShader_);
 }
 
 }

@@ -25,6 +25,7 @@ public:
     static void InitPipeline(vk::ShaderModule vertShader, vk::ShaderModule fragShader);
     static void DrawFrame();
     static void WaitIdle();
+    static void OnResize(int w, int h);
 
 private:
     static vk::Instance instance_;
@@ -48,6 +49,8 @@ private:
 
     static SDL_Window* window_;
 
+    static vk::ShaderModule vertexShader_;
+    static vk::ShaderModule fragShader_;
     static std::unordered_map<const char*, vk::ShaderModule> shaderModules_;
 
 
@@ -68,6 +71,8 @@ private:
         vk::PresentModeKHR presentMode;
     };
     static SwapchainRequireDetails swapchainRequiredDetails_;
+    static SwapchainSupportDetails swapchainSupportDetails_;
+    static QueueFamily queueFamily_;
 
     static vk::Instance createInstance();
     static vk::SurfaceKHR createSurface();
@@ -89,6 +94,8 @@ private:
     static vk::CommandBuffer createCmdBuffer();
     static void recordCmdBuffer(uint32_t imageIdx);
     static std::tuple<vk::Semaphore, vk::Semaphore, vk::Fence> createSemaphoreAndFence();
+
+    static void cleanupSwapchain();
 };
 
 }

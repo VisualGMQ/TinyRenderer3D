@@ -7,7 +7,7 @@ int main(int, char**) {
     SDL_Window* window = SDL_CreateWindow("hello world",
                                           SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                           1024, 720,
-                                          SDL_WINDOW_SHOWN|SDL_WINDOW_VULKAN);
+                                          SDL_WINDOW_SHOWN|SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE);
     if (!window) {
         SDL_Log("SDL window create failed");
         return 1;
@@ -27,6 +27,11 @@ int main(int, char**) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 quit = true;
+            }
+            if (event.type == SDL_WINDOWEVENT) {
+                if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    tr3d::Renderer::OnResize(event.window.data1, event.window.data2);
+                }
             }
         }
         tr3d::Renderer::DrawFrame();
